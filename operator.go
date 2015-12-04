@@ -79,6 +79,41 @@ func getNewKeyState(hostname string, state KeyState) (KeyState, error) {
   }
 }
 
+// Find keys that are present in first slice that are not present in second
+func keyDiff(keySlice1 []ConsulKey, keySlice2 []ConsulKey) []ConsulKey {
+  var diff []ConsulKey
+
+  for _, keyInFirst := range keySlice1 {
+    var present = true
+    for _, keyInSecond := range keySlice2 {
+      if keyInFirst.Key == keyInSecond.Key {
+        present = false
+        break
+      }
+    }
+
+    if present {
+      diff = append(diff, keyInFirst)
+    }
+  }
+
+  return diff
+}
+
+func handleStateChange(previousState KeyState, newState KeyState) {
+  // TODO: This find all keys in namespace that differ.
+  // We want to only find 'app' keys
+  removedKeys := keyDiff(previousState.Keys, newState.Keys)
+  addedKeys := keyDiff(newState.Keys, previousState.Keys)
+
+  fmt.Println("Removed:")
+  fmt.Println(removedKeys)
+  fmt.Println("Added:")
+  fmt.Println(addedKeys)
+
+  out, err := exec.Command("sh","-c",cmd).Output()
+}
+
 func main () {
   hostname, _ := os.LookupEnv("HOSTNAME")
   state := KeyState{Keys: []ConsulKey{}, Index: 0}
@@ -86,16 +121,12 @@ func main () {
   for {
     newState, err := getNewKeyState(hostname, state)
 
-    // handleStateChange(state, newState)
-
-    for _, key := range newState.Keys {
-      fmt.Println(key)
-    }
-
     if err != nil {
       fmt.Println("There was an error getting the new state")
       syscall.Exit(1)
     }
+
+    handleStateChange(state, newState)
 
     time.Sleep(time.Second)
 
