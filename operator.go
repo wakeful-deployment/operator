@@ -10,6 +10,8 @@ import (
   "strings"
   "time"
   "errors"
+  "os/exec"
+  "encoding/base64"
 )
 
 type KeyState struct {
@@ -19,15 +21,8 @@ type KeyState struct {
 
 type ConsulKey struct {
   Key string
+  Value string
   ModifyIndex int
-}
-
-func handleConsulKeys(keys []ConsulKey, currentIndex int) {
-  for _, key := range keys {
-    if (strings.HasPrefix(key.Key, "apps")) {
-      fmt.Println("HEY")
-    }
-  }
 }
 
 func url(hostname string, index int) string {
@@ -100,6 +95,64 @@ func keyDiff(keySlice1 []ConsulKey, keySlice2 []ConsulKey) []ConsulKey {
   return diff
 }
 
+func runningContainers() ([]string, error) {
+  psOut, err := exec.Command("docker","ps").Output()
+
+  if err != nil {
+    return []string{}, err
+  }
+
+  var runningContainers []string
+  lines := strings.Split(string(psOut), "\n")
+  for index, line := range lines {
+    if index == 0 {
+      continue
+    }
+
+    containerInfo := strings.Split(line, " ")
+    containerName := containerInfo[len(containerInfo) - 1]
+    containerName = strings.Trim(containerName, " ")
+
+    if len(containerName) > 0 {
+      runningContainers = append(runningContainers, containerName)
+    }
+  }
+
+  return runningContainers, nil
+}
+
+func containerIsRunning(containerName string, runningContainers []string) bool {
+  containerIsRunning := false
+
+  for _,runningContainerName := range runningContainers {
+    if containerName == runningContainerName {
+      containerIsRunning = true
+    }
+  }
+  return containerIsRunning
+}
+
+func containerName(key ConsulKey) string {
+  keyParts := strings.Split(key.Key, "/")
+  return keyParts[len(keyParts) - 1]
+}
+
+func imageName(key ConsulKey) string {
+  base64Value := key.Value
+  decoded, _ := base64.StdEncoding.DecodeString(base64Value)
+  return string(decoded)
+}
+
+func runContainer(containerName string, imageName string) {
+  fmt.Printf("Running container with name '%s' with image '%s'\n", containerName, imageName)
+  //TODO
+}
+
+func stopContainer(containerName string) {
+  fmt.Printf("Stopping container with name '%s'\n", containerName)
+  //TODO
+}
+
 func handleStateChange(previousState KeyState, newState KeyState) {
   // TODO: This find all keys in namespace that differ.
   // We want to only find 'app' keys
@@ -111,7 +164,40 @@ func handleStateChange(previousState KeyState, newState KeyState) {
   fmt.Println("Added:")
   fmt.Println(addedKeys)
 
-  out, err := exec.Command("sh","-c",cmd).Output()
+  if len(addedKeys) == 0 && len(removedKeys) == 0 {
+    return
+  }
+
+  runningContainers, err := runningContainers()
+
+  if err != nil {
+    //TODO should we handle this more gracefully
+    fmt.Println(err)
+    return
+  }
+
+  if (len(addedKeys) > 0) {
+    for _, key := range addedKeys {
+      containerName := containerName(key)
+      containerIsRunning := containerIsRunning(containerName, runningContainers)
+
+      if !containerIsRunning {
+        imageName := imageName(key)
+        runContainer(containerName, imageName)
+      }
+    }
+  }
+
+  if (len(removedKeys) > 0) {
+    for _, key := range removedKeys {
+      containerName := containerName(key)
+      containerIsRunning := containerIsRunning(containerName, runningContainers)
+
+      if containerIsRunning {
+        stopContainer(containerName)
+      }
+    }
+  }
 }
 
 func main () {
