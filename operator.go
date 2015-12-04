@@ -145,12 +145,28 @@ func imageName(key ConsulKey) string {
 
 func runContainer(containerName string, imageName string) {
   fmt.Printf("Running container with name '%s' with image '%s'\n", containerName, imageName)
-  //TODO
+  _, err := exec.Command("docker","run", "-d", "--name", containerName, imageName).Output()
+
+  if err != nil {
+    fmt.Println("ERROR: Could not run docker run successfully")
+  }
 }
 
 func stopContainer(containerName string) {
   fmt.Printf("Stopping container with name '%s'\n", containerName)
-  //TODO
+  _, err := exec.Command("docker","stop", containerName).Output()
+
+  if err != nil {
+    fmt.Println("ERROR: Could not run docker stop successfully")
+  }
+
+  time.Sleep(time.Second)
+
+  _, err := exec.Command("docker","rm", containerName).Output()
+
+  if err != nil {
+    fmt.Println("ERROR: Could not run docker rm successfully")
+  }
 }
 
 func handleStateChange(previousState KeyState, newState KeyState) {
