@@ -25,16 +25,15 @@ type ConsulKey struct {
 	ModifyIndex int
 }
 
-func url(hostname string, index int) string {
-	return fmt.Sprintf("http://192.168.99.100:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d", hostname, index)
+func makeUrl(consulHost string, hostname string, index int) string {
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d", consulHost, hostname, index)
 }
 
-func getNewKeyState(hostname string, state KeyState) (KeyState, error) {
-	resp, err := http.Get(url(hostname, state.Index))
+func getKeyState(state *KeyState, url string) error {
+	resp, err := http.Get(url)
 
 	if err != nil {
-		var emptyState KeyState
-		return emptyState, err
+		return err
 	}
 
 	switch resp.StatusCode {
@@ -42,35 +41,33 @@ func getNewKeyState(hostname string, state KeyState) (KeyState, error) {
 		index, err := strconv.Atoi(resp.Header["X-Consul-Index"][0])
 
 		if err != nil {
-			var emptyState KeyState
-			return emptyState, err
+			return err
 		}
 
 		var keys []ConsulKey
 		err = json.NewDecoder(resp.Body).Decode(&keys)
 
 		if err != nil {
-			var emptyState KeyState
-			return emptyState, err
+			return err
 		}
 
 		state.Keys = keys
 		state.Index = index
 
-		return state, nil
+		return nil
 	case 404:
 		index, err := strconv.Atoi(resp.Header["X-Consul-Index"][0])
 
 		if err != nil {
-			var emptyState KeyState
-			return emptyState, err
+			return err
 		}
+
 		state.Index = index
 		state.Keys = []ConsulKey{}
-		return state, nil
+
+		return nil
 	default:
-		var emptyState KeyState
-		return emptyState, errors.New("non 200/404 response code")
+		return errors.New("non 200/404 response code")
 	}
 }
 
@@ -154,17 +151,17 @@ func runContainer(containerName string, imageName string) {
 
 func stopContainer(containerName string) {
 	fmt.Printf("Stopping container with name '%s'\n", containerName)
-	_, err := exec.Command("docker", "stop", containerName).Output()
+	_, stopErr := exec.Command("docker", "stop", containerName).Output()
 
-	if err != nil {
+	if stopErr != nil {
 		fmt.Println("ERROR: Could not run docker stop successfully")
 	}
 
 	time.Sleep(time.Second)
 
-	_, err := exec.Command("docker", "rm", containerName).Output()
+	_, rmErr := exec.Command("docker", "rm", containerName).Output()
 
-	if err != nil {
+	if rmErr != nil {
 		fmt.Println("ERROR: Could not run docker rm successfully")
 	}
 }
@@ -217,11 +214,19 @@ func handleStateChange(previousState KeyState, newState KeyState) {
 }
 
 func main() {
-	hostname, _ := os.LookupEnv("HOSTNAME")
+	hostname, hostnameExists := os.LookupEnv("HOSTNAME")
+	consulHost, consulHostExists := os.LookupEnv("CONSUL_HOST")
+
+	if !hostnameExists && !consulHostExists {
+		panic("Must provide HOSTNAME and CONSUL_HOST env variables")
+	}
+
 	state := KeyState{Keys: []ConsulKey{}, Index: 0}
 
 	for {
-		newState, err := getNewKeyState(hostname, state)
+		newState := KeyState{}
+		url := makeUrl(consulHost, hostname, state.Index)
+		err := getKeyState(&newState, url)
 
 		if err != nil {
 			fmt.Println("There was an error getting the new state")
