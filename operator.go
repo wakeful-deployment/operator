@@ -256,8 +256,6 @@ func doWork(desiredState *ConsulState, url string) error {
 
 	handleChange(*desiredState)
 
-	time.Sleep(time.Second)
-
 	return nil
 }
 
@@ -277,6 +275,7 @@ func main() {
 	if shouldLoop {
 		for {
 			err := doWork(&desiredState, url)
+	    time.Sleep(time.Second)
 			if err != nil {
 				continue
 			}
