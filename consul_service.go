@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +14,13 @@ type ConsulService struct {
 	Address string
 	Name    string
 	Port    int
-	Service string
+	Check   ConsulCheck
+}
+
+type ConsulCheck struct {
+	HTTP     string
+	Interval string
+	TTL      string
 }
 
 func (c ConsulService) IsPresent(services []ConsulService) bool {
@@ -26,12 +33,50 @@ func (c ConsulService) IsPresent(services []ConsulService) bool {
 	return false
 }
 
-func (c ConsulService) Register() {
-	fmt.Println(fmt.Sprintf("register %v", c))
+func (c ConsulService) ToJSON() ([]byte, error) {
+	return json.Marshal(c)
 }
 
-func (c ConsulService) Deregister() {
-	fmt.Println(fmt.Sprintf("deregister %v", c))
+func (c ConsulService) Register(host string) error {
+	json, err := c.ToJSON()
+	reader := bytes.NewReader(json)
+
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("http://%s:8500/v1/agent/service/register", host)
+	resp, respErr := http.Post(url, "application/json", reader)
+
+	if respErr != nil {
+		return respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("service failed to register: %v", c))
+	}
+
+	return nil
+}
+
+func (c ConsulService) Deregister(host string) error {
+	reader := bytes.NewReader([]byte{})
+	url := fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", host, c.ID)
+	resp, respErr := http.Post(url, "application/json", reader)
+
+	if respErr != nil {
+		return respErr
+	}
+
+	if resp.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("service failed to deregister: %v", c))
+	}
+
+	return nil
+}
+
+func DefaultCheck() ConsulCheck {
+	return ConsulCheck{HTTP: "http://localhost:8000/_health", Interval: "6s", TTL: "5s"}
 }
 
 func parseResponse(reader io.Reader) ([]ConsulService, error) {
@@ -112,7 +157,7 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 	return diff
 }
 
-func normalizeConsulServices(newState ConsulState, current []ConsulService) {
+func normalizeConsulServices(newState ConsulState, current []ConsulService, consulHost string) {
 	fmt.Println(fmt.Sprintf("newState: %v", newState))
 	desired := newState.Services()
 
@@ -128,13 +173,14 @@ func normalizeConsulServices(newState ConsulState, current []ConsulService) {
 
 	if len(added) > 0 {
 		for _, service := range added {
-			service.Register()
+			service.Check = DefaultCheck()
+			service.Register(consulHost)
 		}
 	}
 
 	if len(removed) > 0 {
 		for _, service := range removed {
-			service.Deregister()
+			service.Deregister(consulHost)
 		}
 	}
 }

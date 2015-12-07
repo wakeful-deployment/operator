@@ -30,3 +30,23 @@ func TestConsulParseJSON(t *testing.T) {
 		}
 	}
 }
+
+const ConsulServiceRegistrationJSON = `
+{"ID":"proxy","Address":"localhost","Name":"proxy","Port":8000,"Check":{"HTTP":"http://localhost:8000/_health","Interval":"6s","TTL":"5s"}}
+`
+
+func TestConsulRegistrationJSON(t *testing.T) {
+	check := DefaultCheck()
+	service := ConsulService{ID: "proxy", Address: "localhost", Name: "proxy", Port: 8000, Check: check}
+
+	byt, err := service.ToJSON()
+	expected := strings.TrimSpace(ConsulServiceRegistrationJSON)
+
+	if err != nil {
+		t.Errorf("got an error making json: %v", err)
+	}
+
+	if expected != string(byt) {
+		t.Errorf("Consul registration json is not as expected: %s", byt)
+	}
+}

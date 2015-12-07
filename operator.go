@@ -46,7 +46,7 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) (int, error)
 	}
 
 	normalizeDockerContainers(desiredState)
-	normalizeConsulServices(desiredState, services)
+	normalizeConsulServices(desiredState, services, stateUrl.Host)
 
 	fmt.Println("tock!")
 
