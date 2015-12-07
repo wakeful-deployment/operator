@@ -4,13 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -247,30 +246,43 @@ func handleChange(newState ConsulState) {
 	}
 }
 
-func main() {
-	hostname, hostnameExists := os.LookupEnv("HOSTNAME")
-	consulHost, consulHostExists := os.LookupEnv("CONSUL_HOST")
+func doWork(desiredState *ConsulState, url string) error {
+	err := getConsulState(desiredState, url)
 
-	if !hostnameExists && !consulHostExists {
-		panic("Must provide HOSTNAME and CONSUL_HOST env variables")
+	if err != nil {
+		fmt.Sprintf("There was an error getting the new consul state: %v", err)
+		return err
 	}
 
+	handleChange(*desiredState)
+
+	time.Sleep(time.Second)
+
+	return nil
+}
+
+func main() {
+	var hostname = *flag.String("hostname", "", "The name of the host which is running operator")
+	var consulHost = *flag.String("consul_host", "", "The name of the consul host")
+	var shouldLoop = *flag.Bool("loop", false, "Run on each change to the consul key/value storage")
+
+	if hostname != "" && consulHost != "" {
+		panic("Must provide hostname and consul_host flags")
+	}
+
+	desiredState := ConsulState{}
 	lastIndex := 0
+	url := makeUrl(consulHost, hostname, lastIndex)
 
-	for {
-		desiredState := ConsulState{}
-		url := makeUrl(consulHost, hostname, lastIndex)
-		err := getConsulState(&desiredState, url)
-
-		if err != nil {
-			fmt.Println("There was an error getting the new state")
-			syscall.Exit(1)
+	if shouldLoop {
+		for {
+			err := doWork(&desiredState, url)
+			if err != nil {
+				continue
+			}
+			url = makeUrl(consulHost, hostname, desiredState.Index)
 		}
-
-		handleChange(desiredState)
-
-		time.Sleep(time.Second)
-
-		lastIndex = desiredState.Index
+	} else {
+		doWork(&desiredState, url)
 	}
 }
