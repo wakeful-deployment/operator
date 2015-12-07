@@ -59,7 +59,7 @@ func makeUrl(consulHost string, hostname string, index int) string {
 	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d", consulHost, hostname, index)
 }
 
-func getConsulStateBlocking(state *ConsulState, url string) error {
+func getConsulState(state *ConsulState, url string) error {
 	resp, err := http.Get(url)
 
 	if err != nil {
@@ -260,7 +260,7 @@ func main() {
 	for {
 		desiredState := ConsulState{}
 		url := makeUrl(consulHost, hostname, lastIndex)
-		err := getConsulStateBlocking(&desiredState, url)
+		err := getConsulState(&desiredState, url)
 
 		if err != nil {
 			fmt.Println("There was an error getting the new state")
