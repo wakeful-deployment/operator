@@ -275,7 +275,7 @@ func main() {
 	if shouldLoop {
 		for {
 			err := doWork(&desiredState, url)
-	    time.Sleep(time.Second)
+			time.Sleep(time.Second)
 			if err != nil {
 				continue
 			}
