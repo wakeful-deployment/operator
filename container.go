@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -72,43 +73,43 @@ func diffContainers(leftContainers []Container, rightContainers []Container) []C
 }
 
 func runningContainers() ([]Container, error) {
-	psOut, err := exec.Command("docker", "ps").Output()
+	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
-
-		return []Container{}, err
+		return nil, err
 	}
 
 	return parseDockerPsOutput(string(psOut))
 }
 
 func parseDockerPsOutput(output string) ([]Container, error) {
-	var runningContainers []Container
 
+	output = strings.TrimSpace(output)
 	lines := strings.Split(output, "\n")
 
-	for index, line := range lines {
-		if index == 0 {
-			continue
-		}
+	var runningContainers []Container
 
+	for _, line := range lines {
 		info := strings.Split(line, " ")
+		var cleanedInfo []string
+
+		for _, str := range info {
+			str = strings.TrimSpace(str)
+			if str != "" {
+				cleanedInfo = append(cleanedInfo, str)
+			}
+		}
+		info = cleanedInfo
 
 		var name string
 		var image string
 
-		if len(info) < 2 {
-			fmt.Printf("ERROR: retreived info was not formatted correctly: %v\n", info)
-			continue
+		if len(info) != 2 {
+			str := fmt.Sprintf("ERROR: retreived info was not formatted correctly: %s\n", line)
+			errors.New(str)
 		} else {
-			name = info[len(info)-1] // Last in the info
-			name = strings.Trim(name, " ")
-
+			name = info[0]  // First in the info
 			image = info[1] // Second in the info
-			image = strings.Trim(image, " ")
-		}
-
-		if len(name) > 0 {
 			container := Container{Name: name, Image: image}
 			runningContainers = append(runningContainers, container)
 		}
