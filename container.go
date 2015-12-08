@@ -79,9 +79,13 @@ func runningContainers() ([]Container, error) {
 		return []Container{}, err
 	}
 
+	return parseDockerPsOutput(string(psOut))
+}
+
+func parseDockerPsOutput(output string) ([]Container, error) {
 	var runningContainers []Container
 
-	lines := strings.Split(string(psOut), "\n")
+	lines := strings.Split(output, "\n")
 
 	for index, line := range lines {
 		if index == 0 {
@@ -135,15 +139,11 @@ func normalizeDockerContainers(newState ConsulState) {
 		return
 	}
 
-	if len(added) > 0 {
-		for _, container := range added {
-			container.Run()
-		}
+	for _, container := range added {
+		container.Run()
 	}
 
-	if len(removed) > 0 {
-		for _, container := range removed {
-			container.Stop()
-		}
+	for _, container := range removed {
+		container.Stop()
 	}
 }

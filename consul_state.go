@@ -3,9 +3,21 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 )
+
+type ConsulStateURL struct {
+	Host     string
+	Hostname string
+	Index    int
+	Wait     string
+}
+
+func (c *ConsulStateURL) ToString() string {
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d&wait=%s", c.Host, c.Hostname, c.Index, c.Wait)
+}
 
 type ConsulState struct {
 	Index int
@@ -36,13 +48,7 @@ func getIndex(resp *http.Response) (int, error) {
 	return strconv.Atoi(resp.Header["X-Consul-Index"][0])
 }
 
-func GetConsulState(state *ConsulState, url string) error {
-	resp, err := http.Get(url)
-
-	if err != nil {
-		return err
-	}
-
+func handleConsulResponse(resp *http.Response, state *ConsulState) error {
 	switch resp.StatusCode {
 	case 200:
 		index, err := getIndex(resp)
@@ -76,4 +82,21 @@ func GetConsulState(state *ConsulState, url string) error {
 	default:
 		return errors.New("non 200/404 response code")
 	}
+}
+
+func NewConsulState(url string) (*ConsulState, error) {
+	state := &ConsulState{}
+	resp, err := http.Get(url)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = handleConsulResponse(resp, state)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }
