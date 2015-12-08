@@ -7,8 +7,9 @@ import (
 const ValidKey = "/_wakeful/nodes/bar"
 const Base64Value = "Zm9vYmFy" // => foobar
 
+var consulKV = ConsulKV{Key: ValidKey, Value: Base64Value}
+
 func TestConsulKVToContainer(t *testing.T) {
-	consulKV := ConsulKV{Key: ValidKey, Value: Base64Value}
 	container := consulKV.ToContainer()
 
 	expectedName := "bar"
@@ -19,5 +20,14 @@ func TestConsulKVToContainer(t *testing.T) {
 	expectedImage := "foobar"
 	if container.Image != expectedImage {
 		t.Errorf("Container image = expect: %s but got: %s", expectedImage, container.Image)
+	}
+}
+
+func TestConsulKVToService(t *testing.T) {
+	service := consulKV.ToService()
+
+	expectedName := "bar"
+	if service.Name != expectedName {
+		t.Errorf("Service name = expect: %s but got: %s", expectedName, service.Name)
 	}
 }
