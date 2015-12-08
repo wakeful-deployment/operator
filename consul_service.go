@@ -23,14 +23,8 @@ type ConsulCheck struct {
 	TTL      string
 }
 
-func (c ConsulService) IsPresent(services []ConsulService) bool {
-	for _, other := range services {
-		if other.Name == c.Name {
-			return true
-		}
-	}
-
-	return false
+func (c ConsulService) GetName() string {
+	return c.Name
 }
 
 func (c ConsulService) ToJSON() ([]byte, error) {
@@ -104,34 +98,18 @@ func GetConsulServices(url ConsulServicesURL) ([]ConsulService, error) {
 		return nil, err
 	}
 
-	switch resp.StatusCode {
-	case 200:
+	if resp.StatusCode == 200 {
 		return parseResponse(resp.Body)
-	default:
+	} else {
 		return nil, errors.New("Could not fetch services")
 	}
-
-	return nil, nil
-}
-
-func serviceIsWhitelisted(service ConsulService) bool {
-	serviceWhiteList := []string{"consul", "statsite", "operator"}
-	for _, name := range serviceWhiteList {
-		if service.Name == name {
-			return true
-		}
-	}
-
-	return false
 }
 
 func diffServices(leftServices []ConsulService, rightServices []ConsulService) []ConsulService {
 	var diff []ConsulService
 
-	fmt.Println(fmt.Sprintf("compared %v to %v", leftServices, rightServices))
-
 	for _, left := range leftServices {
-		if serviceIsWhitelisted(left) {
+		if isWhitelisted(left) {
 			continue
 		}
 
@@ -139,9 +117,8 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 		isMissing := true
 
 		for _, right := range rightServices {
-			fmt.Println(fmt.Sprintf("comparing %s to %s", left.Name, right.Name))
 			if left.Name == right.Name {
-				// If we find a match, then it's not missing, but is present
+				// If we find a match, then it's not missing
 				isMissing = false
 				break
 			}
@@ -149,7 +126,6 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 
 		// If we found it to be missing in the end, then append to the diff
 		if isMissing {
-			fmt.Println(fmt.Sprintf("adding %s to the diff", left.Name))
 			diff = append(diff, left)
 		}
 	}
@@ -167,20 +143,12 @@ func normalizeConsulServices(newState ConsulState, current []ConsulService, cons
 	fmt.Printf("Removed services: %v\n", removed)
 	fmt.Printf("Added services: %v\n", added)
 
-	if len(added) == 0 && len(removed) == 0 {
-		return
+	for _, service := range added {
+		service.Check = DefaultCheck()
+		service.Register(consulHost)
 	}
 
-	if len(added) > 0 {
-		for _, service := range added {
-			service.Check = DefaultCheck()
-			service.Register(consulHost)
-		}
-	}
-
-	if len(removed) > 0 {
-		for _, service := range removed {
-			service.Deregister(consulHost)
-		}
+	for _, service := range removed {
+		service.Deregister(consulHost)
 	}
 }

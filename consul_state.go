@@ -32,6 +32,10 @@ func (c ConsulState) Services() []ConsulService {
 	return services
 }
 
+func getIndex(resp *http.Response) (int, error) {
+	return strconv.Atoi(resp.Header["X-Consul-Index"][0])
+}
+
 func GetConsulState(state *ConsulState, url string) error {
 	resp, err := http.Get(url)
 
@@ -41,7 +45,7 @@ func GetConsulState(state *ConsulState, url string) error {
 
 	switch resp.StatusCode {
 	case 200:
-		index, err := strconv.Atoi(resp.Header["X-Consul-Index"][0])
+		index, err := getIndex(resp)
 
 		if err != nil {
 			return err
@@ -59,7 +63,7 @@ func GetConsulState(state *ConsulState, url string) error {
 
 		return nil
 	case 404:
-		index, err := strconv.Atoi(resp.Header["X-Consul-Index"][0])
+		index, err := getIndex(resp)
 
 		if err != nil {
 			return err
