@@ -9,10 +9,6 @@ import (
 	"net/http"
 )
 
-type ConsulEntity interface {
-	GetName() string
-}
-
 type ConsulService struct {
 	ID      string
 	Address string
@@ -29,16 +25,6 @@ type ConsulCheck struct {
 
 func (c ConsulService) GetName() string {
 	return c.Name
-}
-
-func (c ConsulService) IsPresent(services []ConsulService) bool {
-	for _, other := range services {
-		if other.Name == c.Name {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (c ConsulService) ToJSON() ([]byte, error) {
@@ -119,17 +105,6 @@ func GetConsulServices(url ConsulServicesURL) ([]ConsulService, error) {
 	}
 }
 
-func isWhitelisted(entity ConsulEntity) bool {
-	whiteList := []string{"consul", "statsite", "operator"}
-	for _, name := range whiteList {
-		if entity.GetName() == name {
-			return true
-		}
-	}
-
-	return false
-}
-
 func diffServices(leftServices []ConsulService, rightServices []ConsulService) []ConsulService {
 	var diff []ConsulService
 
@@ -143,7 +118,7 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 
 		for _, right := range rightServices {
 			if left.Name == right.Name {
-				// If we find a match, then it's not missing, but is present
+				// If we find a match, then it's not missing
 				isMissing = false
 				break
 			}

@@ -12,14 +12,8 @@ type Container struct {
 	Image string
 }
 
-func (c Container) IsPresent(containers []Container) bool {
-	for _, other := range containers {
-		if other.Name == c.Name {
-			return true
-		}
-	}
-
-	return false
+func (c Container) GetName() string {
+	return c.Name
 }
 
 func (c Container) Run() {
@@ -48,25 +42,12 @@ func (c Container) Stop() {
 	}
 }
 
-func containerIsWhitelisted(container Container) bool {
-	containerWhiteList := []string{"consul", "statsite", "operator"}
-	for _, name := range containerWhiteList {
-		if container.Name == name {
-			return true
-		}
-	}
-
-	return false
-}
-
 // Find keys that are present in first slice that are not present in second
 func diffContainers(leftContainers []Container, rightContainers []Container) []Container {
 	var diff []Container
 
-	fmt.Println(fmt.Sprintf("compared %v to %v", leftContainers, rightContainers))
-
 	for _, left := range leftContainers {
-		if containerIsWhitelisted(left) {
+		if isWhitelisted(left) {
 			continue
 		}
 
@@ -74,9 +55,8 @@ func diffContainers(leftContainers []Container, rightContainers []Container) []C
 		isMissing := true
 
 		for _, right := range rightContainers {
-			fmt.Println(fmt.Sprintf("comparing %s to %s", left.Name, right.Name))
 			if left.Name == right.Name {
-				// If we find a match, then it's not missing, but is present
+				// If we find a match, then it's not missing
 				isMissing = false
 				break
 			}
@@ -84,7 +64,6 @@ func diffContainers(leftContainers []Container, rightContainers []Container) []C
 
 		// If we found it to be missing in the end, then append to the diff
 		if isMissing {
-			fmt.Println(fmt.Sprintf("adding %s to the diff", left.Name))
 			diff = append(diff, left)
 		}
 	}
@@ -96,6 +75,7 @@ func runningContainers() ([]Container, error) {
 	psOut, err := exec.Command("docker", "ps").Output()
 
 	if err != nil {
+
 		return []Container{}, err
 	}
 
@@ -114,15 +94,13 @@ func runningContainers() ([]Container, error) {
 		var image string
 
 		if len(info) < 2 {
-			fmt.Printf("retreived info was not formatted correctly: %v\n", info)
+			fmt.Printf("ERROR: retreived info was not formatted correctly: %v\n", info)
 			continue
 		} else {
-			fmt.Printf("info: %v\n", info)
-
-			name = info[len(info)-1]
+			name = info[len(info)-1] // Last in the info
 			name = strings.Trim(name, " ")
 
-			image = info[1]
+			image = info[1] // Second in the info
 			image = strings.Trim(image, " ")
 		}
 
@@ -142,11 +120,8 @@ func normalizeDockerContainers(newState ConsulState) {
 	desired := newState.Containers()
 	current, err := runningContainers()
 
-	fmt.Println(fmt.Sprintf("current running containers: %v", current))
-
 	if err != nil {
-		//TODO should we handle this more gracefully
-		fmt.Printf("could not fetch running containers: %v\n", err)
+		fmt.Printf("ERROR: could not fetch running containers: %v\n", err)
 		return
 	}
 
