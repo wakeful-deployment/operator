@@ -16,14 +16,32 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 		return 0, err
 	}
 
-	services, sErr := GetConsulServices(*servicesUrl)
+	desiredContainers := desiredState.Containers()
+	desiredContainers = append(desiredContainers, bootstrapContainers...)
+	// TODO: This find all keys in namespace that differ.
+	// We want to only find 'app' keys
+	currentContainers, err := RunningContainers()
 
-	if sErr != nil {
-		fmt.Sprintf("ERROR: error getting the registered consul services: %v", err)
+	if err != nil {
+		return 0, err
 	}
 
-	normalizeDockerContainers(*desiredState, bootstrapContainers)
-	normalizeConsulServices(*desiredState, services, stateUrl.Host)
+	err = NormalizeDockerContainers(desiredContainers, currentContainers)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	desiredServices := desiredState.Services()
+	currentServices, err := GetConsulServices(*servicesUrl)
+
+	if err != nil {
+		return 0, err
+	}
+
+	err = NormalizeConsulServices(desiredServices, currentServices, stateUrl.Host)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	return desiredState.Index, nil
 }
@@ -39,6 +57,14 @@ func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 			fmt.Println(err)
 			continue
 		}
+	}
+}
+
+func tickOnce(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) {
+	_, err := tick(stateUrl, servicesUrl, bootstrapContainers)
+
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -143,6 +169,6 @@ func main() {
 	if *shouldLoop {
 		loop(&stateUrl, &servicesUrl, bootstrapContainers)
 	} else {
-		tick(&stateUrl, &servicesUrl, bootstrapContainers)
+		tickOnce(&stateUrl, &servicesUrl, bootstrapContainers)
 	}
 }
