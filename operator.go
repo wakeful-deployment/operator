@@ -45,10 +45,12 @@ func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 type BootImage struct {
 	Name  string `json:"name"`
 	Image string `json:"image"`
+	Ports []PortPair
+	Env   map[string]string `json:"env"`
 }
 
 func (b BootImage) ToContainer() Container {
-	return Container{Name: b.Name, Image: b.Image}
+	return Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env}
 }
 
 type Config struct {

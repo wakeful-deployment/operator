@@ -8,18 +8,56 @@ import (
 	"time"
 )
 
+type PortPair struct {
+	Incoming int  `json:"incoming"`
+	Outgoing int  `json:"outgoing"`
+	UDP      bool `json:"udp"`
+}
 type Container struct {
 	Name  string
 	Image string
+	Ports []PortPair
+	Env   map[string]string
 }
 
 func (c Container) GetName() string {
 	return c.Name
 }
 
+func (c Container) portsString() string {
+	str := ""
+	for _, portPair := range c.Ports {
+		str = fmt.Sprintf("%s -p %d:%d", str, portPair.Incoming, portPair.Outgoing)
+		if portPair.UDP {
+			str = fmt.Sprintf("%s/udp", str)
+		}
+	}
+	return str
+}
+
+func (c Container) envString() string {
+	str := ""
+	for key, value := range c.Env {
+		str = fmt.Sprintf("%s -e %s=%s", str, key, value)
+	}
+	return str
+}
+
 func (c Container) Run() {
 	fmt.Printf("Running container with name '%s' with image '%s'\n", c.Name, c.Image)
-	_, err := exec.Command("docker", "run", "-d", "-P", "--name", c.Name, c.Image).Output()
+
+	args := []string{"run", "-d", "--name", c.Name}
+	args = append(args, strings.Split(c.portsString(), " ")...)
+	args = append(args, strings.Split(c.envString(), " ")...)
+	args = append(args, c.Image)
+	var cleaned []string
+	for _, arg := range args {
+		arg = strings.TrimSpace(arg)
+		if arg != "" {
+			cleaned = append(cleaned, arg)
+		}
+	}
+	_, err := exec.Command("docker", cleaned...).Output()
 
 	if err != nil {
 		fmt.Println("ERROR: Could not run docker run successfully")
@@ -88,7 +126,7 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 
 	var runningContainers []Container
 
-	if len(lines) == 1 {
+	if len(lines) == 0 {
 		return []Container{}, nil
 	}
 
