@@ -110,7 +110,7 @@ func diffContainers(leftContainers []Container, rightContainers []Container) []C
 	return diff
 }
 
-func runningContainers() ([]Container, error) {
+func RunningContainers() ([]Container, error) {
 	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
@@ -124,11 +124,7 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 	output = strings.TrimSpace(output)
 	lines := strings.Split(output, "\n")
 
-	var runningContainers []Container
-
-	if len(lines) == 0 {
-		return []Container{}, nil
-	}
+	runningContainers := []Container{}
 
 	for _, line := range lines {
 		info := strings.Split(line, " ")
@@ -148,12 +144,15 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 		if len(info) != 2 {
 			str := fmt.Sprintf("ERROR: retreived info was not formatted correctly: %s\n", line)
 			return nil, errors.New(str)
-		} else {
-			name = info[0]  // First in the info
-			image = info[1] // Second in the info
-			container := Container{Name: name, Image: image}
-			runningContainers = append(runningContainers, container)
 		}
+
+		name = info[0]  // First in the info
+		image = info[1] // Second in the info
+		if name == "operator" {
+			continue
+		}
+		container := Container{Name: name, Image: image}
+		runningContainers = append(runningContainers, container)
 	}
 
 	return runningContainers, nil
@@ -165,7 +164,7 @@ func normalizeDockerContainers(newState ConsulState, bootstrappContainers []Cont
 
 	desired := newState.Containers()
 	desired = append(desired, bootstrappContainers...)
-	current, err := runningContainers()
+	current, err := RunningContainers()
 
 	if err != nil {
 		fmt.Printf("ERROR: could not fetch running containers: %v\n", err)

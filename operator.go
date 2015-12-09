@@ -106,7 +106,7 @@ func bootstrap(configPath string) ([]Container, error) {
 	}
 
 	containers := bootstrapContainers(config)
-	runningContainers, err := runningContainers()
+	runningContainers, err := RunningContainers()
 
 	if err != nil {
 		return nil, err
