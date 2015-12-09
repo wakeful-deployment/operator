@@ -1,10 +1,12 @@
 package main
 
 import (
+	"github.com/wakeful-deployment/operator/consul"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+	// "github.com/wakeful-deployment/operator/docker"
 )
 
 type CloseReader struct {
@@ -84,7 +86,7 @@ func TestHandleConsulResponse(t *testing.T) {
 }
 
 func TestStateContainers(t *testing.T) {
-	kvs := []ConsulKV{ConsulKV{Key: "_wakeful/nodes/abc/proxy", Value: "Zm9vYmFy"}}
+	kvs := []consul.ConsulKV{consul.ConsulKV{Key: "_wakeful/nodes/abc/proxy", Value: "Zm9vYmFy"}}
 	state := ConsulState{Index: 29, KVs: kvs}
 
 	containers := state.Containers()
@@ -104,7 +106,7 @@ func TestStateContainers(t *testing.T) {
 }
 
 func TestStateServices(t *testing.T) {
-	kvs := []ConsulKV{ConsulKV{Key: "_wakeful/nodes/abc/proxy", Value: "Zm9vYmFy"}}
+	kvs := []consul.ConsulKV{consul.ConsulKV{Key: "_wakeful/nodes/abc/proxy", Value: "Zm9vYmFy"}}
 	state := ConsulState{Index: 29, KVs: kvs}
 
 	services := state.Services()

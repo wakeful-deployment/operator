@@ -1,4 +1,4 @@
-package main
+package docker
 
 import (
 	"errors"
@@ -88,6 +88,17 @@ func (c Container) Stop() error {
 	}
 
 	return nil
+}
+
+func isWhitelisted(entity Container) bool {
+	whiteList := []string{"consul", "statsite", "operator"}
+	for _, name := range whiteList {
+		if entity.GetName() == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Find keys that are present in first slice that are not present in second

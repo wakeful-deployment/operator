@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/docker"
 	"time"
 )
 
-func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) (int, error) {
+func tick(stateUrl *ConsulStateURL, servicesUrl *consul.ConsulServicesURL, bootstrapContainers []docker.Container) (int, error) {
 	desiredState, err := NewConsulState(stateUrl.ToString())
 
 	if err != nil {
@@ -23,7 +25,7 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 	desiredContainers = append(desiredContainers, bootstrapContainers...)
 	currentContainers := currentState.Containers()
 
-	err = NormalizeDockerContainers(desiredContainers, currentContainers)
+	err = docker.NormalizeDockerContainers(desiredContainers, currentContainers)
 
 	if err != nil {
 		fmt.Println(err)
@@ -32,7 +34,7 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 	desiredServices := desiredState.Services()
 	currentServices := currentState.Services()
 
-	err = NormalizeConsulServices(desiredServices, currentServices, stateUrl.Host)
+	err = consul.NormalizeConsulServices(desiredServices, currentServices, stateUrl.Host)
 
 	if err != nil {
 		fmt.Println(err)
@@ -41,7 +43,7 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 	return desiredState.Index, nil
 }
 
-func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) {
+func loop(stateUrl *ConsulStateURL, servicesUrl *consul.ConsulServicesURL, bootstrapContainers []docker.Container) {
 	for {
 		newIndex, err := tick(stateUrl, servicesUrl, bootstrapContainers)
 		stateUrl.Index = newIndex
@@ -55,7 +57,7 @@ func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 	}
 }
 
-func tickOnce(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) {
+func tickOnce(stateUrl *ConsulStateURL, servicesUrl *consul.ConsulServicesURL, bootstrapContainers []docker.Container) {
 	_, err := tick(stateUrl, servicesUrl, bootstrapContainers)
 
 	if err != nil {
@@ -84,7 +86,7 @@ func main() {
 	}
 
 	stateUrl := ConsulStateURL{Host: *consulHost, Hostname: *hostname, Wait: *wait}
-	servicesUrl := ConsulServicesURL{Host: *consulHost}
+	servicesUrl := consul.ConsulServicesURL{Host: *consulHost}
 
 	if *shouldLoop {
 		loop(&stateUrl, &servicesUrl, bootstrapContainers)

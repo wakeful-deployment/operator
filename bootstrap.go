@@ -3,18 +3,19 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/wakeful-deployment/operator/docker"
 	"io/ioutil"
 )
 
 type BootImage struct {
 	Name  string `json:"name"`
 	Image string `json:"image"`
-	Ports []PortPair
+	Ports []docker.PortPair
 	Env   map[string]string `json:"env"`
 }
 
-func (b BootImage) ToContainer() Container {
-	return Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env}
+func (b BootImage) ToContainer() docker.Container {
+	return docker.Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env}
 }
 
 type Config struct {
@@ -38,8 +39,8 @@ func NewConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
-func bootstrapContainers(config *Config) []Container {
-	var containers []Container
+func bootstrapContainers(config *Config) []docker.Container {
+	var containers []docker.Container
 	for _, bootImage := range config.BootImages {
 		containers = append(containers, bootImage.ToContainer())
 	}
@@ -47,7 +48,7 @@ func bootstrapContainers(config *Config) []Container {
 	return containers
 }
 
-func runBootstrapContainers(containers []Container, runningContainers []Container) {
+func runBootstrapContainers(containers []docker.Container, runningContainers []docker.Container) {
 	for _, container := range containers {
 		containerAlreadyRunning := false
 		for _, runningContainer := range runningContainers {
@@ -62,7 +63,7 @@ func runBootstrapContainers(containers []Container, runningContainers []Containe
 	}
 }
 
-func Bootstrap(configPath string) ([]Container, error) {
+func Bootstrap(configPath string) ([]docker.Container, error) {
 	config, err := NewConfig(configPath)
 
 	if err != nil {
@@ -70,7 +71,7 @@ func Bootstrap(configPath string) ([]Container, error) {
 	}
 
 	containers := bootstrapContainers(config)
-	runningContainers, err := RunningContainers()
+	runningContainers, err := docker.RunningContainers()
 
 	if err != nil {
 		return nil, err
