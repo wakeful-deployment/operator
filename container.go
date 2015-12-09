@@ -83,7 +83,6 @@ func runningContainers() ([]Container, error) {
 }
 
 func parseDockerPsOutput(output string) ([]Container, error) {
-
 	output = strings.TrimSpace(output)
 	lines := strings.Split(output, "\n")
 
@@ -106,7 +105,7 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 
 		if len(info) != 2 {
 			str := fmt.Sprintf("ERROR: retreived info was not formatted correctly: %s\n", line)
-			errors.New(str)
+			return nil, errors.New(str)
 		} else {
 			name = info[0]  // First in the info
 			image = info[1] // Second in the info
