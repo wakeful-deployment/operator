@@ -117,11 +117,12 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 	return runningContainers, nil
 }
 
-func normalizeDockerContainers(newState ConsulState) {
+func normalizeDockerContainers(newState ConsulState, bootstrappContainers []Container) {
 	// TODO: This find all keys in namespace that differ.
 	// We want to only find 'app' keys
 
 	desired := newState.Containers()
+	desired = append(desired, bootstrappContainers...)
 	current, err := runningContainers()
 
 	if err != nil {

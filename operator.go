@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) (int, error) {
+func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) (int, error) {
 	desiredState, err := NewConsulState(stateUrl.ToString())
 
 	if err != nil {
@@ -24,15 +24,15 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) (int, error)
 		return desiredState.Index, sErr
 	}
 
-	normalizeDockerContainers(*desiredState)
+	normalizeDockerContainers(*desiredState, bootstrapContainers)
 	normalizeConsulServices(*desiredState, services, stateUrl.Host)
 
 	return desiredState.Index, nil
 }
 
-func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) {
+func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapContainers []Container) {
 	for {
-		newIndex, err := tick(stateUrl, servicesUrl)
+		newIndex, err := tick(stateUrl, servicesUrl, bootstrapContainers)
 		stateUrl.Index = newIndex
 
 		time.Sleep(time.Second)
@@ -115,7 +115,7 @@ func main() {
 		panic("ERROR: Must provide hostname and consulhost flags")
 	}
 
-	_, err := bootstrap(*configPath)
+	bootstrapContainers, err := bootstrap(*configPath)
 
 	if err != nil {
 		panic("ERROR: Could not bootstrap containers")
@@ -125,8 +125,8 @@ func main() {
 	servicesUrl := ConsulServicesURL{Host: *consulHost}
 
 	if *shouldLoop {
-		loop(&stateUrl, &servicesUrl)
+		loop(&stateUrl, &servicesUrl, bootstrapContainers)
 	} else {
-		tick(&stateUrl, &servicesUrl)
+		tick(&stateUrl, &servicesUrl, bootstrapContainers)
 	}
 }
