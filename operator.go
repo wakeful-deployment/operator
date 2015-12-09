@@ -13,15 +13,13 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 	desiredState, err := NewConsulState(stateUrl.ToString())
 
 	if err != nil {
-		fmt.Sprintf("ERROR: error getting the new consul KV state: %v", err)
-		return desiredState.Index, err
+		return 0, err
 	}
 
 	services, sErr := GetConsulServices(*servicesUrl)
 
 	if sErr != nil {
 		fmt.Sprintf("ERROR: error getting the registered consul services: %v", err)
-		return desiredState.Index, sErr
 	}
 
 	normalizeDockerContainers(*desiredState, bootstrapContainers)
@@ -38,6 +36,7 @@ func loop(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 		time.Sleep(time.Second)
 
 		if err != nil {
+			fmt.Println(err)
 			continue
 		}
 	}
@@ -76,15 +75,24 @@ func config(configPath string) (*Config, error) {
 func bootstrapContainers(config *Config) []Container {
 	var containers []Container
 	for _, bootImage := range config.BootImages {
-		bootImage.ToContainer()
+		containers = append(containers, bootImage.ToContainer())
 	}
 
 	return containers
 }
 
-func runBootstrapContainers(containers []Container) {
+func runBootstrapContainers(containers []Container, runningContainers []Container) {
 	for _, container := range containers {
-		container.Run()
+		containerAlreadyRunning := false
+		for _, runningContainer := range runningContainers {
+			if runningContainer.Name == container.Name {
+				containerAlreadyRunning = true
+			}
+		}
+
+		if !containerAlreadyRunning {
+			container.Run()
+		}
 	}
 }
 
@@ -96,7 +104,13 @@ func bootstrap(configPath string) ([]Container, error) {
 	}
 
 	containers := bootstrapContainers(config)
-	runBootstrapContainers(containers)
+	runningContainers, err := runningContainers()
+
+	if err != nil {
+		return nil, err
+	}
+
+	runBootstrapContainers(containers, runningContainers)
 
 	return containers, nil
 }
@@ -118,7 +132,7 @@ func main() {
 	bootstrapContainers, err := bootstrap(*configPath)
 
 	if err != nil {
-		panic("ERROR: Could not bootstrap containers")
+		panic(err)
 	}
 
 	stateUrl := ConsulStateURL{Host: *consulHost, Hostname: *hostname, Wait: *wait}

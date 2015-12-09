@@ -88,6 +88,10 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 
 	var runningContainers []Container
 
+	if len(lines) == 1 {
+		return []Container{}, nil
+	}
+
 	for _, line := range lines {
 		info := strings.Split(line, " ")
 		var cleanedInfo []string
