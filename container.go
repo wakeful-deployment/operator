@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -72,39 +73,42 @@ func diffContainers(leftContainers []Container, rightContainers []Container) []C
 }
 
 func runningContainers() ([]Container, error) {
-	psOut, err := exec.Command("docker", "ps").Output()
+	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
-
-		return []Container{}, err
+		return nil, err
 	}
+
+	return parseDockerPsOutput(string(psOut))
+}
+
+func parseDockerPsOutput(output string) ([]Container, error) {
+	output = strings.TrimSpace(output)
+	lines := strings.Split(output, "\n")
 
 	var runningContainers []Container
 
-	lines := strings.Split(string(psOut), "\n")
-
-	for index, line := range lines {
-		if index == 0 {
-			continue
-		}
-
+	for _, line := range lines {
 		info := strings.Split(line, " ")
+		var cleanedInfo []string
+
+		for _, str := range info {
+			str = strings.TrimSpace(str)
+			if str != "" {
+				cleanedInfo = append(cleanedInfo, str)
+			}
+		}
+		info = cleanedInfo
 
 		var name string
 		var image string
 
-		if len(info) < 2 {
-			fmt.Printf("ERROR: retreived info was not formatted correctly: %v\n", info)
-			continue
+		if len(info) != 2 {
+			str := fmt.Sprintf("ERROR: retreived info was not formatted correctly: %s\n", line)
+			return nil, errors.New(str)
 		} else {
-			name = info[len(info)-1] // Last in the info
-			name = strings.Trim(name, " ")
-
+			name = info[0]  // First in the info
 			image = info[1] // Second in the info
-			image = strings.Trim(image, " ")
-		}
-
-		if len(name) > 0 {
 			container := Container{Name: name, Image: image}
 			runningContainers = append(runningContainers, container)
 		}
@@ -135,15 +139,11 @@ func normalizeDockerContainers(newState ConsulState) {
 		return
 	}
 
-	if len(added) > 0 {
-		for _, container := range added {
-			container.Run()
-		}
+	for _, container := range added {
+		container.Run()
 	}
 
-	if len(removed) > 0 {
-		for _, container := range removed {
-			container.Stop()
-		}
+	for _, container := range removed {
+		container.Stop()
 	}
 }

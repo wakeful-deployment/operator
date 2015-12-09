@@ -9,6 +9,14 @@ import (
 	"net/http"
 )
 
+type ConsulServicesURL struct {
+	Host string
+}
+
+func (c *ConsulServicesURL) ToString() string {
+	return fmt.Sprintf("http://%s:8500/v1/agent/services", c.Host)
+}
+
 type ConsulService struct {
 	ID      string
 	Address string
@@ -134,7 +142,6 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 }
 
 func normalizeConsulServices(newState ConsulState, current []ConsulService, consulHost string) {
-	fmt.Println(fmt.Sprintf("newState: %v", newState))
 	desired := newState.Services()
 
 	removed := diffServices(current, desired)

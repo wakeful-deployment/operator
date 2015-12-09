@@ -6,28 +6,8 @@ import (
 	"time"
 )
 
-type ConsulStateURL struct {
-	Host     string
-	Hostname string
-	Index    int
-	Wait     string
-}
-
-type ConsulServicesURL struct {
-	Host string
-}
-
-func (c *ConsulStateURL) ToString() string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d&wait=%s", c.Host, c.Hostname, c.Index, c.Wait)
-}
-
-func (c *ConsulServicesURL) ToString() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/services", c.Host)
-}
-
 func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) (int, error) {
-	desiredState := ConsulState{}
-	err := GetConsulState(&desiredState, stateUrl.ToString())
+	desiredState, err := NewConsulState(stateUrl.ToString())
 
 	if err != nil {
 		fmt.Sprintf("ERROR: error getting the new consul KV state: %v", err)
@@ -41,8 +21,8 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL) (int, error)
 		return desiredState.Index, sErr
 	}
 
-	normalizeDockerContainers(desiredState)
-	normalizeConsulServices(desiredState, services, stateUrl.Host)
+	normalizeDockerContainers(*desiredState)
+	normalizeConsulServices(*desiredState, services, stateUrl.Host)
 
 	return desiredState.Index, nil
 }
