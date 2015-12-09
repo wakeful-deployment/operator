@@ -99,8 +99,8 @@ func parseResponse(reader io.Reader) ([]ConsulService, error) {
 	return services, nil
 }
 
-func GetConsulServices(url ConsulServicesURL) ([]ConsulService, error) {
-	resp, err := http.Get(url.ToString())
+func GetConsulServices(url string) ([]ConsulService, error) {
+	resp, err := http.Get(url)
 
 	if err != nil {
 		return nil, err

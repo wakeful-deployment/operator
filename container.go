@@ -44,7 +44,7 @@ func (c Container) envString() string {
 }
 
 func (c Container) Run() error {
-	fmt.Printf("Info: running container with name '%s' with image '%s'\n", c.Name, c.Image)
+	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name, c.Image)
 
 	args := []string{"run", "-d", "--name", c.Name}
 	args = append(args, strings.Split(c.portsString(), " ")...)
@@ -69,7 +69,7 @@ func (c Container) Run() error {
 }
 
 func (c Container) Stop() error {
-	fmt.Printf("Info: stopping container with name '%s'\n", c.Name)
+	fmt.Printf("INFO: stopping container with name '%s'\n", c.Name)
 
 	_, err := exec.Command("docker", "stop", c.Name).Output()
 
@@ -173,7 +173,6 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 }
 
 func NormalizeDockerContainers(desired []Container, current []Container) error {
-
 	removed := diffContainers(current, desired)
 	added := diffContainers(desired, current)
 

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"time"
 )
 
@@ -16,29 +13,27 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstrapCon
 		return 0, err
 	}
 
-	desiredContainers := desiredState.Containers()
-	desiredContainers = append(desiredContainers, bootstrapContainers...)
-	// TODO: This find all keys in namespace that differ.
-	// We want to only find 'app' keys
-	currentContainers, err := RunningContainers()
+	currentState, err := NewCurrentState(servicesUrl.ToString())
 
 	if err != nil {
 		return 0, err
 	}
 
+	desiredContainers := desiredState.Containers()
+	desiredContainers = append(desiredContainers, bootstrapContainers...)
+	currentContainers := currentState.Containers()
+
 	err = NormalizeDockerContainers(desiredContainers, currentContainers)
+
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	desiredServices := desiredState.Services()
-	currentServices, err := GetConsulServices(*servicesUrl)
-
-	if err != nil {
-		return 0, err
-	}
+	currentServices := currentState.Services()
 
 	err = NormalizeConsulServices(desiredServices, currentServices, stateUrl.Host)
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -68,81 +63,6 @@ func tickOnce(stateUrl *ConsulStateURL, servicesUrl *ConsulServicesURL, bootstra
 	}
 }
 
-type BootImage struct {
-	Name  string `json:"name"`
-	Image string `json:"image"`
-	Ports []PortPair
-	Env   map[string]string `json:"env"`
-}
-
-func (b BootImage) ToContainer() Container {
-	return Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env}
-}
-
-type Config struct {
-	BootImages []BootImage `json:"boot_images"`
-}
-
-func config(configPath string) (*Config, error) {
-	contents, err := ioutil.ReadFile(configPath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	config := &Config{}
-	jsonErr := json.NewDecoder(bytes.NewReader(contents)).Decode(config)
-
-	if jsonErr != nil {
-		return nil, jsonErr
-	}
-
-	return config, nil
-}
-
-func bootstrapContainers(config *Config) []Container {
-	var containers []Container
-	for _, bootImage := range config.BootImages {
-		containers = append(containers, bootImage.ToContainer())
-	}
-
-	return containers
-}
-
-func runBootstrapContainers(containers []Container, runningContainers []Container) {
-	for _, container := range containers {
-		containerAlreadyRunning := false
-		for _, runningContainer := range runningContainers {
-			if runningContainer.Name == container.Name {
-				containerAlreadyRunning = true
-			}
-		}
-
-		if !containerAlreadyRunning {
-			container.Run()
-		}
-	}
-}
-
-func bootstrap(configPath string) ([]Container, error) {
-	config, err := config(configPath)
-
-	if err != nil {
-		return nil, err
-	}
-
-	containers := bootstrapContainers(config)
-	runningContainers, err := RunningContainers()
-
-	if err != nil {
-		return nil, err
-	}
-
-	runBootstrapContainers(containers, runningContainers)
-
-	return containers, nil
-}
-
 func main() {
 	var (
 		hostname   = flag.String("hostname", "", "The name of the host which is running operator")
@@ -157,7 +77,7 @@ func main() {
 		panic("ERROR: Must provide hostname and consulhost flags")
 	}
 
-	bootstrapContainers, err := bootstrap(*configPath)
+	bootstrapContainers, err := Bootstrap(*configPath)
 
 	if err != nil {
 		panic(err)
