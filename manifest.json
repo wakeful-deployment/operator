@@ -1,0 +1,15 @@
+{
+  "platform": "go",
+  "app": "operator",
+  "owners": [
+    "nathan.herald@microsoft.com",
+    "ryan.levick@microsoft.com"
+  ],
+  "processes": {
+    "operator": {
+      "cpu": 0,
+      "memory": 0,
+      "start": "/opt/app/operator -loop -consulhost $CONSULHOST -hostname $HOSTNAME -configpath /opt/config/operator.json"
+    }
+  }
+}
