@@ -1,5 +1,7 @@
 # Operator
 
+![Build status](https://travis-ci.org/wakeful-deployment/operator.svg?branch=master)
+
 Operator is a daemon which listens for changes to consul key/value storage and reacts to those changes. The daemon reacts in the following ways:
 
 * start and stop docker containers
