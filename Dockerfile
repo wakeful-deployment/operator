@@ -13,6 +13,9 @@ RUN apt-get update \
 
 RUN apt-get install -y --no-install-recommends g++ gcc libc6-dev make
 
+ADD https://get.docker.com/builds/Linux/x86_64/docker-latest /usr/bin/docker
+RUN chmod +x /usr/bin/docker
+
 RUN curl -fsSL "$GOLANG_DOWNLOAD_URL" -o golang.tar.gz \
  && echo "$GOLANG_DOWNLOAD_SHA1  golang.tar.gz" | sha1sum -c - \
  && tar -C /usr/local -xzf golang.tar.gz \
