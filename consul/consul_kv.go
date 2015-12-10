@@ -1,7 +1,8 @@
-package main
+package consul
 
 import (
 	"encoding/base64"
+	"github.com/wakeful-deployment/operator/docker"
 	"strings"
 )
 
@@ -22,8 +23,8 @@ func (c ConsulKV) ImageName() string {
 	return string(decoded)
 }
 
-func (c ConsulKV) ToContainer() Container {
-	return Container{Name: c.Name(), Image: c.ImageName()}
+func (c ConsulKV) ToContainer() docker.Container {
+	return docker.Container{Name: c.Name(), Image: c.ImageName()}
 }
 func (c ConsulKV) ToService() ConsulService {
 	return ConsulService{ID: c.Name(), Name: c.Name()}

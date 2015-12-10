@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/docker"
 	"net/http"
 	"strconv"
 )
@@ -21,11 +23,11 @@ func (c *ConsulStateURL) ToString() string {
 
 type ConsulState struct {
 	Index int
-	KVs   []ConsulKV
+	KVs   []consul.ConsulKV
 }
 
-func (c ConsulState) Containers() []Container {
-	var containers []Container
+func (c ConsulState) Containers() []docker.Container {
+	var containers []docker.Container
 
 	for _, kv := range c.KVs {
 		containers = append(containers, kv.ToContainer())
@@ -34,8 +36,8 @@ func (c ConsulState) Containers() []Container {
 	return containers
 }
 
-func (c ConsulState) Services() []ConsulService {
-	var services []ConsulService
+func (c ConsulState) Services() []consul.ConsulService {
+	var services []consul.ConsulService
 
 	for _, kv := range c.KVs {
 		services = append(services, kv.ToService())
@@ -57,7 +59,7 @@ func handleConsulResponse(resp *http.Response, state *ConsulState) error {
 			return err
 		}
 
-		var keys []ConsulKV
+		var keys []consul.ConsulKV
 		err = json.NewDecoder(resp.Body).Decode(&keys)
 
 		if err != nil {
@@ -76,7 +78,7 @@ func handleConsulResponse(resp *http.Response, state *ConsulState) error {
 		}
 
 		state.Index = index
-		state.KVs = []ConsulKV{}
+		state.KVs = []consul.ConsulKV{}
 
 		return nil
 	default:
