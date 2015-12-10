@@ -4,6 +4,23 @@ import (
 	"testing"
 )
 
+func TestContainerPortString(t *testing.T) {
+	ports := []PortPair{PortPair{Incoming: 8000, Outgoing: 8000}}
+	containerWithPorts := Container{Name: "foo", Image: "foo:latest", Ports: ports}
+	containerWithoutPorts := Container{Name: "foo", Image: "foo:latest"}
+
+	expectedWithPortsString := " -p 8000:8000"
+	expectedWithoutPortsString := "-P"
+
+	if containerWithPorts.portsString() != expectedWithPortsString {
+		t.Errorf("portsString is wrong, got '%s' expected '%s'", containerWithPorts.portsString(), expectedWithPortsString)
+	}
+
+	if containerWithoutPorts.portsString() != expectedWithoutPortsString {
+		t.Errorf("portsString is wrong, got '%s' expected '%s'", containerWithoutPorts.portsString(), expectedWithoutPortsString)
+	}
+}
+
 func TestDockerPsParsing(t *testing.T) {
 	output := "consul plum/wake-consul-server:latest\n"
 	containers, err := parseDockerPsOutput(output)

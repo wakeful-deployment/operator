@@ -25,6 +25,10 @@ func (c Container) GetName() string {
 }
 
 func (c Container) portsString() string {
+	if len(c.Ports) == 0 {
+		return "-P"
+	}
+
 	str := ""
 	for _, portPair := range c.Ports {
 		str = fmt.Sprintf("%s -p %d:%d", str, portPair.Incoming, portPair.Outgoing)
