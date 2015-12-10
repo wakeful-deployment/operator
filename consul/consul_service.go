@@ -1,4 +1,4 @@
-package main
+package consul
 
 import (
 	"bytes"
@@ -99,8 +99,8 @@ func parseResponse(reader io.Reader) ([]ConsulService, error) {
 	return services, nil
 }
 
-func GetConsulServices(url ConsulServicesURL) ([]ConsulService, error) {
-	resp, err := http.Get(url.ToString())
+func GetConsulServices(url string) ([]ConsulService, error) {
+	resp, err := http.Get(url)
 
 	if err != nil {
 		return nil, err
@@ -141,21 +141,34 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 	return diff
 }
 
-func normalizeConsulServices(newState ConsulState, current []ConsulService, consulHost string) {
-	desired := newState.Services()
-
+func NormalizeConsulServices(desired []ConsulService, current []ConsulService, consulHost string) error {
 	removed := diffServices(current, desired)
 	added := diffServices(desired, current)
 
-	fmt.Printf("Removed services: %v\n", removed)
-	fmt.Printf("Added services: %v\n", added)
+	fmt.Printf("INFO: Removed services: %v\n", removed)
+	fmt.Printf("INFO: Added services: %v\n", added)
 
+	errs := []error{}
 	for _, service := range added {
 		service.Check = DefaultCheck()
-		service.Register(consulHost)
+		err := service.Register(consulHost)
+
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	for _, service := range removed {
-		service.Deregister(consulHost)
+		err := service.Deregister(consulHost)
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
+
+	if len(errs) > 0 {
+		errMsg := fmt.Sprintf("ERROR: At least 1 error normalizing services: %v", errs)
+		return errors.New(errMsg)
+	}
+
+	return nil
 }

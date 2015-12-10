@@ -1,4 +1,4 @@
-package main
+package docker
 
 import (
 	"errors"
@@ -43,8 +43,8 @@ func (c Container) envString() string {
 	return str
 }
 
-func (c Container) Run() {
-	fmt.Printf("Running container with name '%s' with image '%s'\n", c.Name, c.Image)
+func (c Container) Run() error {
+	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name, c.Image)
 
 	args := []string{"run", "-d", "--name", c.Name}
 	args = append(args, strings.Split(c.portsString(), " ")...)
@@ -57,28 +57,48 @@ func (c Container) Run() {
 			cleaned = append(cleaned, arg)
 		}
 	}
+
 	_, err := exec.Command("docker", cleaned...).Output()
 
 	if err != nil {
-		fmt.Println("ERROR: Could not run docker run successfully")
+		errMsg := fmt.Sprintf("ERROR: 'docker run' failed: %v", err)
+		return errors.New(errMsg)
 	}
+
+	return nil
 }
 
-func (c Container) Stop() {
-	fmt.Printf("Stopping container with name '%s'\n", c.Name)
-	_, stopErr := exec.Command("docker", "stop", c.Name).Output()
+func (c Container) Stop() error {
+	fmt.Printf("INFO: stopping container with name '%s'\n", c.Name)
 
-	if stopErr != nil {
-		fmt.Println("ERROR: Could not run docker stop successfully")
+	_, err := exec.Command("docker", "stop", c.Name).Output()
+
+	if err != nil {
+		errMsg := fmt.Sprintf("ERROR: 'docker stop' failed: %v", err)
+		return errors.New(errMsg)
 	}
 
 	time.Sleep(time.Second)
 
-	_, rmErr := exec.Command("docker", "rm", c.Name).Output()
+	_, err = exec.Command("docker", "rm", c.Name).Output()
 
-	if rmErr != nil {
-		fmt.Println("ERROR: Could not run docker rm successfully")
+	if err != nil {
+		errMsg := fmt.Sprintf("ERROR: 'docker rm' failed: %v", err)
+		return errors.New(errMsg)
 	}
+
+	return nil
+}
+
+func isWhitelisted(entity Container) bool {
+	whiteList := []string{"consul", "statsite", "operator"}
+	for _, name := range whiteList {
+		if entity.GetName() == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Find keys that are present in first slice that are not present in second
@@ -114,7 +134,8 @@ func RunningContainers() ([]Container, error) {
 	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
-		return nil, err
+		errMsg := fmt.Sprintf("ERROR: could not fetch running containers: %v\n", err)
+		return nil, errors.New(errMsg)
 	}
 
 	return parseDockerPsOutput(string(psOut))
@@ -122,9 +143,13 @@ func RunningContainers() ([]Container, error) {
 
 func parseDockerPsOutput(output string) ([]Container, error) {
 	output = strings.TrimSpace(output)
-	lines := strings.Split(output, "\n")
-
 	runningContainers := []Container{}
+
+	if output == "" {
+		return runningContainers, nil
+	}
+
+	lines := strings.Split(output, "\n")
 
 	for _, line := range lines {
 		info := strings.Split(line, " ")
@@ -142,8 +167,8 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 		var image string
 
 		if len(info) != 2 {
-			str := fmt.Sprintf("ERROR: retreived info was not formatted correctly: %s\n", line)
-			return nil, errors.New(str)
+			errMsg := fmt.Sprintf("ERROR: 'docker ps' info was not formatted correctly: %s\n", line)
+			return nil, errors.New(errMsg)
 		}
 
 		name = info[0]  // First in the info
@@ -158,34 +183,36 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 	return runningContainers, nil
 }
 
-func normalizeDockerContainers(newState ConsulState, bootstrappContainers []Container) {
-	// TODO: This find all keys in namespace that differ.
-	// We want to only find 'app' keys
-
-	desired := newState.Containers()
-	desired = append(desired, bootstrappContainers...)
-	current, err := RunningContainers()
-
-	if err != nil {
-		fmt.Printf("ERROR: could not fetch running containers: %v\n", err)
-		return
-	}
-
+func NormalizeDockerContainers(desired []Container, current []Container) error {
 	removed := diffContainers(current, desired)
 	added := diffContainers(desired, current)
 
-	fmt.Printf("Removed containers: %v\n", removed)
-	fmt.Printf("Added containers: %v\n", added)
+	fmt.Printf("INFO: Removed containers: %v\n", removed)
+	fmt.Printf("INFO: Added containers: %v\n", added)
 
 	if len(added) == 0 && len(removed) == 0 {
-		return
+		return nil
 	}
 
+	errs := []error{}
 	for _, container := range added {
-		container.Run()
+		err := container.Run()
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	for _, container := range removed {
-		container.Stop()
+		err := container.Stop()
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
+
+	if len(errs) > 0 {
+		errMsg := fmt.Sprintf("ERROR: At least 1 error normalizing containers: %v", errs)
+		return errors.New(errMsg)
+	}
+
+	return nil
 }
