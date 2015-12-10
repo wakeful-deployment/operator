@@ -9,7 +9,7 @@
     "operator": {
       "cpu": 0,
       "memory": 0,
-      "start": "/opt/app/operator -loop -consulhost $CONSULHOST -hostname $HOSTNAME -configpath /opt/config/operator.json"
+      "start": "/opt/app/operator -loop -consulhost \"$CONSULHOST\" -hostname \"$VMHOSTNAME\" -configpath /opt/config/operator.json"
     }
   }
 }
