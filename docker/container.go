@@ -14,10 +14,11 @@ type PortPair struct {
 	UDP      bool `json:"udp"`
 }
 type Container struct {
-	Name  string
-	Image string
-	Ports []PortPair
-	Env   map[string]string
+	Name    string
+	Image   string
+	Ports   []PortPair
+	Env     map[string]string
+	Restart string
 }
 
 func (c Container) GetName() string {
@@ -47,13 +48,24 @@ func (c Container) envString() string {
 	return str
 }
 
+func (c Container) restartString() string {
+	if c.Restart == "" {
+		return "--restart=always"
+	}
+
+	return fmt.Sprintf("--restart=%s", c.Restart)
+
+}
+
 func (c Container) Run() error {
 	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name, c.Image)
 
 	args := []string{"run", "-d", "--name", c.Name}
 	args = append(args, strings.Split(c.portsString(), " ")...)
 	args = append(args, strings.Split(c.envString(), " ")...)
+	args = append(args, c.restartString())
 	args = append(args, c.Image)
+
 	var cleaned []string
 	for _, arg := range args {
 		arg = strings.TrimSpace(arg)

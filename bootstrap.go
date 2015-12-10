@@ -7,17 +7,6 @@ import (
 	"io/ioutil"
 )
 
-type BootImage struct {
-	Name  string `json:"name"`
-	Image string `json:"image"`
-	Ports []docker.PortPair
-	Env   map[string]string `json:"env"`
-}
-
-func (b BootImage) ToContainer() docker.Container {
-	return docker.Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env}
-}
-
 type Config struct {
 	BootImages []BootImage `json:"boot_images"`
 }
@@ -46,6 +35,18 @@ func bootstrapContainers(config *Config) []docker.Container {
 	}
 
 	return containers
+}
+
+type BootImage struct {
+	Name    string            `json:"name"`
+	Image   string            `json:"image"`
+	Ports   []docker.PortPair `json:"ports"`
+	Env     map[string]string `json:"env"`
+	Restart string            `json:"restart"`
+}
+
+func (b BootImage) ToContainer() docker.Container {
+	return docker.Container{Name: b.Name, Image: b.Image, Ports: b.Ports, Env: b.Env, Restart: b.Restart}
 }
 
 func runBootstrapContainers(containers []docker.Container, runningContainers []docker.Container) {
