@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	// "github.com/wakeful-deployment/operator/docker"
 )
 
 type CloseReader struct {
