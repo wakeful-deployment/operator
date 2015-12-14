@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -18,6 +20,33 @@ func TestContainerPortString(t *testing.T) {
 
 	if containerWithoutPorts.portsString() != expectedWithoutPortsString {
 		t.Errorf("portsString is wrong, got '%s' expected '%s'", containerWithoutPorts.portsString(), expectedWithoutPortsString)
+	}
+}
+
+func TestContainerEnvString(t *testing.T) {
+	os.Setenv("QUX", "myenv")
+	containerWithEnv := Container{Name: "foo", Image: "foo:latest", Env: map[string]string{"foo": "bar", "baz": "$QUX", "alpha": "$omega"}}
+
+	actualEnvString := containerWithEnv.envString()
+	parts := strings.Split(actualEnvString, " ")
+
+	if len(parts) != 7 {
+		t.Errorf("envString is wrong, '%s' has wrong number of parts: %d", actualEnvString, len(parts))
+	}
+
+	correctCount := 0
+	for _, part := range parts {
+		if part == "" || part == "-e" {
+			continue
+		}
+
+		if part == "foo=bar" || part == "baz=myenv" || part == "alpha=$omega" {
+			correctCount += 1
+		}
+	}
+
+	if correctCount != 3 {
+		t.Errorf("envString is wrong, '%s' does not include the right vars", actualEnvString)
 	}
 }
 
