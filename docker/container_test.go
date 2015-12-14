@@ -2,6 +2,7 @@ package docker
 
 import (
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -26,11 +27,26 @@ func TestContainerEnvString(t *testing.T) {
 	os.Setenv("QUX", "myenv")
 	containerWithEnv := Container{Name: "foo", Image: "foo:latest", Env: map[string]string{"foo": "bar", "baz": "$QUX", "alpha": "$omega"}}
 
-	expectedEnvString := " -e foo=bar -e baz=myenv -e alpha=$omega"
 	actualEnvString := containerWithEnv.envString()
+	parts := strings.Split(actualEnvString, " ")
 
-	if actualEnvString != expectedEnvString {
-		t.Errorf("envString is wrong, got '%s' expected '%s'", actualEnvString, expectedEnvString)
+	if len(parts) != 7 {
+		t.Errorf("envString is wrong, '%s' has wrong number of parts: %d", actualEnvString, len(parts))
+	}
+
+	correctCount := 0
+	for _, part := range parts {
+		if part == "" || part == "-e" {
+			continue
+		}
+
+		if part == "foo=bar" || part == "baz=myenv" || part == "alpha=$omega" {
+			correctCount += 1
+		}
+	}
+
+	if correctCount != 3 {
+		t.Errorf("envString is wrong, '%s' does not include the right vars", actualEnvString)
 	}
 }
 
