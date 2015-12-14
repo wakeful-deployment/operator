@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"os"
 	"testing"
 )
 
@@ -18,6 +19,18 @@ func TestContainerPortString(t *testing.T) {
 
 	if containerWithoutPorts.portsString() != expectedWithoutPortsString {
 		t.Errorf("portsString is wrong, got '%s' expected '%s'", containerWithoutPorts.portsString(), expectedWithoutPortsString)
+	}
+}
+
+func TestContainerEnvString(t *testing.T) {
+	os.Setenv("QUX", "myenv")
+	containerWithEnv := Container{Name: "foo", Image: "foo:latest", Env: map[string]string{"foo": "bar", "baz": "$QUX", "alpha": "$omega"}}
+
+	expectedEnvString := " -e foo=bar -e baz=myenv -e alpha=$omega"
+	actualEnvString := containerWithEnv.envString()
+
+	if actualEnvString != expectedEnvString {
+		t.Errorf("envString is wrong, got '%s' expected '%s'", actualEnvString, expectedEnvString)
 	}
 }
 
