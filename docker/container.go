@@ -42,13 +42,15 @@ func (c Container) portsString() string {
 }
 
 func (c Container) envString() string {
-	str := ""
+	str := fmt.Sprintf("-e APPLICATION_NAME=%s", c.Name)
+
 	for key, value := range c.Env {
 		if strings.HasPrefix(value, "$") && strings.ToUpper(value) == value {
 			value, _ = os.LookupEnv(value[1:len(value)])
 		}
 		str = fmt.Sprintf("%s -e %s=%s", str, key, value)
 	}
+
 	return str
 }
 

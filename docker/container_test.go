@@ -30,7 +30,7 @@ func TestContainerEnvString(t *testing.T) {
 	actualEnvString := containerWithEnv.envString()
 	parts := strings.Split(actualEnvString, " ")
 
-	if len(parts) != 7 {
+	if len(parts) != 8 {
 		t.Errorf("envString is wrong, '%s' has wrong number of parts: %d", actualEnvString, len(parts))
 	}
 
