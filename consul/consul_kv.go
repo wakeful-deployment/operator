@@ -17,10 +17,14 @@ func (c ConsulKV) Name() string {
 	return keyParts[len(keyParts)-1]
 }
 
-func (c ConsulKV) ImageName() string {
+func (c ConsulKV) DecodedValue() string {
 	base64Value := c.Value
 	decoded, _ := base64.StdEncoding.DecodeString(base64Value)
 	return string(decoded)
+}
+
+func (c ConsulKV) ImageName() string {
+	return c.DecodedValue()
 }
 
 func (c ConsulKV) ToContainer() docker.Container {
