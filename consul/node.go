@@ -5,4 +5,4 @@ type NodeInfo struct {
 	Host string
 }
 
-var Node *NodeInfo
+var Node = NodeInfo{}

@@ -9,7 +9,7 @@
     "operator": {
       "cpu": 0,
       "memory": 0,
-      "start": "/opt/app/operator -loop -consul \"$NODEIP\" -node \"$NODENAME\" -configpath /opt/config/operator.json"
+      "start": "/opt/app/operator -loop -consul \"$CONSULHOST\" -node \"$NODE\" -config /opt/config/operator.json"
     }
   }
 }

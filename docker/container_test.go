@@ -1,10 +1,30 @@
 package docker
 
 import (
+	"github.com/wakeful-deployment/operator/consul"
 	"os"
 	"strings"
 	"testing"
 )
+
+const ValidKey = "/_wakeful/nodes/bar"
+const Base64Value = "Zm9vYmFy" // => foobar
+
+var consulKV = consul.ConsulKV{Key: ValidKey, Value: Base64Value}
+
+func TestConsulKVToContainer(t *testing.T) {
+	container := KVToContainer(consulKV)
+
+	expectedName := "bar"
+	if container.Name != expectedName {
+		t.Errorf("Container name = expect: %s but got: %s", expectedName, container.Name)
+	}
+
+	expectedImage := "foobar"
+	if container.Image != expectedImage {
+		t.Errorf("Container image = expect: %s but got: %s", expectedImage, container.Image)
+	}
+}
 
 func TestContainerPortString(t *testing.T) {
 	ports := []PortPair{PortPair{Incoming: 8000, Outgoing: 8000}}
@@ -29,10 +49,6 @@ func TestContainerEnvString(t *testing.T) {
 
 	actualEnvString := containerWithEnv.envString()
 	parts := strings.Split(actualEnvString, " ")
-
-	if len(parts) != 8 {
-		t.Errorf("envString is wrong, '%s' has wrong number of parts: %d", actualEnvString, len(parts))
-	}
 
 	correctCount := 0
 	for _, part := range parts {

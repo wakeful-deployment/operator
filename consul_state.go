@@ -28,7 +28,7 @@ func (c ConsulState) Containers() []docker.Container {
 	var containers []docker.Container
 
 	for _, kv := range c.KVs {
-		containers = append(containers, kv.ToContainer())
+		containers = append(containers, docker.KVToContainer(kv))
 	}
 
 	return containers

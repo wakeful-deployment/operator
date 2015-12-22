@@ -3,6 +3,7 @@ package docker
 import (
 	"errors"
 	"fmt"
+	"github.com/wakeful-deployment/operator/consul"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,12 +15,17 @@ type PortPair struct {
 	Outgoing int  `json:"outgoing"`
 	UDP      bool `json:"udp"`
 }
+
 type Container struct {
 	Name    string
 	Image   string
 	Ports   []PortPair
 	Env     map[string]string
 	Restart string
+}
+
+func KVToContainer(c consul.ConsulKV) Container {
+	return Container{Name: c.Name(), Image: c.ImageName()}
 }
 
 func (c Container) GetName() string {
@@ -43,6 +49,7 @@ func (c Container) portsString() string {
 
 func (c Container) envString() string {
 	str := fmt.Sprintf("-e APPLICATION_NAME=%s", c.Name)
+	str = fmt.Sprintf("%s -e NODE=%s -e CONSULHOST=%s", str, consul.Node.Name, consul.Node.Host)
 
 	for key, value := range c.Env {
 		if strings.HasPrefix(value, "$") && strings.ToUpper(value) == value {
