@@ -11,14 +11,12 @@ import (
 )
 
 type ConsulStateURL struct {
-	Host     string
-	Hostname string
-	Index    int
-	Wait     string
+	Index int
+	Wait  string
 }
 
 func (c *ConsulStateURL) ToString() string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d&wait=%s", c.Host, c.Hostname, c.Index, c.Wait)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d&wait=%s", consul.Node.Host, consul.Node.Name, c.Index, c.Wait)
 }
 
 type ConsulState struct {

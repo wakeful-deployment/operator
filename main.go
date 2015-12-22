@@ -34,7 +34,7 @@ func tick(stateUrl *ConsulStateURL, servicesUrl *consul.ConsulServicesURL, boots
 	desiredServices := desiredState.Services()
 	currentServices := currentState.Services()
 
-	err = consul.NormalizeConsulServices(desiredServices, currentServices, stateUrl.Host)
+	err = consul.NormalizeConsulServices(desiredServices, currentServices)
 
 	if err != nil {
 		fmt.Println(err)
@@ -67,17 +67,20 @@ func tickOnce(stateUrl *ConsulStateURL, servicesUrl *consul.ConsulServicesURL, b
 
 func main() {
 	var (
-		hostname   = flag.String("hostname", "", "The name of the host which is running operator")
-		consulHost = flag.String("consulhost", "", "The name of the consul host")
-		configPath = flag.String("configpath", "./operator.json", "The path to the operator.json. The default is the current directory of the binary.")
+		nodename   = flag.String("node", "", "The name of the host which is running operator")
+		consulHost = flag.String("consul", "", "The name of the consul host")
+		configPath = flag.String("config", "./operator.json", "The path to the operator.json. The default is the current directory of the binary.")
 		shouldLoop = flag.Bool("loop", false, "Run on each change to the consul key/value storage")
 		wait       = flag.String("wait", "5m", "The timeout for polling")
 	)
 	flag.Parse()
 
-	if *hostname == "" && *consulHost == "" {
-		panic("ERROR: Must provide hostname and consulhost flags")
+	if *nodename == "" || *consulHost == "" {
+		panic("ERROR: Must provide -node and -consul flags")
 	}
+
+	consul.Node.Name = *nodename
+	consul.Node.Host = *consulHost
 
 	bootstrapContainers, err := Bootstrap(*configPath)
 
@@ -85,8 +88,8 @@ func main() {
 		panic(err)
 	}
 
-	stateUrl := ConsulStateURL{Host: *consulHost, Hostname: *hostname, Wait: *wait}
-	servicesUrl := consul.ConsulServicesURL{Host: *consulHost}
+	stateUrl := ConsulStateURL{Wait: *wait}
+	servicesUrl := consul.ConsulServicesURL{}
 
 	if *shouldLoop {
 		loop(&stateUrl, &servicesUrl, bootstrapContainers)

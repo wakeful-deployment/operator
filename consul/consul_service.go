@@ -10,11 +10,10 @@ import (
 )
 
 type ConsulServicesURL struct {
-	Host string
 }
 
-func (c *ConsulServicesURL) ToString() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/services", c.Host)
+func (c ConsulServicesURL) ToString() string {
+	return fmt.Sprintf("http://%s:8500/v1/agent/services", Node.Host)
 }
 
 type ConsulService struct {
@@ -39,7 +38,7 @@ func (c ConsulService) ToJSON() ([]byte, error) {
 	return json.Marshal(c)
 }
 
-func (c ConsulService) Register(host string) error {
+func (c ConsulService) Register() error {
 	json, err := c.ToJSON()
 	reader := bytes.NewReader(json)
 
@@ -47,7 +46,7 @@ func (c ConsulService) Register(host string) error {
 		return err
 	}
 
-	url := fmt.Sprintf("http://%s:8500/v1/agent/service/register", host)
+	url := fmt.Sprintf("http://%s:8500/v1/agent/service/register", Node.Host)
 	resp, respErr := http.Post(url, "application/json", reader)
 
 	if respErr != nil {
@@ -61,9 +60,9 @@ func (c ConsulService) Register(host string) error {
 	return nil
 }
 
-func (c ConsulService) Deregister(host string) error {
+func (c ConsulService) Deregister() error {
 	reader := bytes.NewReader([]byte{})
-	url := fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", host, c.ID)
+	url := fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", Node.Host, c.ID)
 	resp, respErr := http.Post(url, "application/json", reader)
 
 	if respErr != nil {
@@ -141,7 +140,7 @@ func diffServices(leftServices []ConsulService, rightServices []ConsulService) [
 	return diff
 }
 
-func NormalizeConsulServices(desired []ConsulService, current []ConsulService, consulHost string) error {
+func NormalizeConsulServices(desired []ConsulService, current []ConsulService) error {
 	removed := diffServices(current, desired)
 	added := diffServices(desired, current)
 
@@ -151,7 +150,7 @@ func NormalizeConsulServices(desired []ConsulService, current []ConsulService, c
 	errs := []error{}
 	for _, service := range added {
 		service.Check = DefaultCheck()
-		err := service.Register(consulHost)
+		err := service.Register()
 
 		if err != nil {
 			errs = append(errs, err)
@@ -159,7 +158,7 @@ func NormalizeConsulServices(desired []ConsulService, current []ConsulService, c
 	}
 
 	for _, service := range removed {
-		err := service.Deregister(consulHost)
+		err := service.Deregister()
 		if err != nil {
 			errs = append(errs, err)
 		}
