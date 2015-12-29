@@ -16,7 +16,7 @@ type ConsulStateURL struct {
 }
 
 func (c *ConsulStateURL) ToString() string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s?recurse=true&index=%d&wait=%s", consul.Node.Host, consul.Node.Name, c.Index, c.Wait)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", consul.Node.Host, consul.Node.Name, c.Index, c.Wait)
 }
 
 type ConsulState struct {
