@@ -23,14 +23,14 @@ type State struct {
 	KVs   []KV
 }
 
-func (s State) Services() ([]node.Service, error) {
-	var services []node.Service
+func (s State) Services() (node.ServiceCollection, error) {
+	var services node.ServiceCollection
 
 	for _, kv := range s.KVs {
 		err := DecodeService(kv)
 
 		if err != nil {
-			services = append(services, kv.Service)
+			services.Append(kv.Service)
 		} else {
 			return nil, err
 		}

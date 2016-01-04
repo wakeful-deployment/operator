@@ -11,10 +11,10 @@ import (
 func Normalize(config *Config, currentState *State) error {
 	// always try to fix the containers before fixing the registrations
 
-	var desiredContainers []node.Container
+	var desiredContainers node.ContainerCollection
 
 	for _, service := range config.Services {
-		desiredContainers = append(desiredContainers, service.Container())
+		desiredContainers.Append(service.Container())
 	}
 
 	err := docker.NormalizeDockerContainers(desiredContainers, currentState.Containers)

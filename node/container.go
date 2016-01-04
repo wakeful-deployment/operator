@@ -1,5 +1,19 @@
 package node
 
+type ContainerCollection []Container
+
+func (c ContainerCollection) Len() int {
+	return len(c)
+}
+
+func (c ContainerCollection) At(index int) Container {
+	return c[index]
+}
+
+func (c ContainerCollection) Append(container Container) {
+	c = append(c, container)
+}
+
 type Container struct {
 	Name_    string
 	Image_   string

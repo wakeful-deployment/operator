@@ -8,14 +8,16 @@ import (
 	"time"
 )
 
-func Diff(left []Container, right []Container) []Container {
-	var result []Container
+func Diff(left ContainerCollectionI, right ContainerCollectionI) ContainerCollection {
+	var result ContainerCollection
 
-	for _, leftItem := range left {
+	for i := 0; i < left.Len(); i++ {
+		leftItem := left.At(i)
 		// Let's assume at first it is missing
 		isMissing := true
 
-		for _, rightItem := range right {
+		for i := 0; i < right.Len(); i++ {
+			rightItem := right.At(i)
 			if leftItem.Name() == rightItem.Name() {
 				// If we find a match, then it's not missing
 				isMissing = false
@@ -25,14 +27,22 @@ func Diff(left []Container, right []Container) []Container {
 
 		// If we found it to be missing in the end, then append to the diff
 		if isMissing {
-			result = append(result, leftItem)
+			container := Container{
+				Name_:    leftItem.Name(),
+				Image_:   leftItem.Image(),
+				Ports_:   leftItem.Ports(),
+				Env_:     leftItem.Env(),
+				Restart_: leftItem.Restart(),
+				Tags_:    leftItem.Tags(),
+			}
+			result.Append(container)
 		}
 	}
 
 	return result
 }
 
-func Run(c Container) error {
+func Run(c ContainerI) error {
 	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name(), c.Image())
 
 	args := RunArgs(c)
@@ -46,7 +56,7 @@ func Run(c Container) error {
 	return nil
 }
 
-func Stop(c Container) error {
+func Stop(c ContainerI) error {
 	fmt.Printf("INFO: stopping container with name '%s'\n", c.Name)
 
 	_, err := exec.Command("docker", "stop", c.Name()).Output()
@@ -70,7 +80,7 @@ func Stop(c Container) error {
 
 // For now, we assume if it's running then it's running with the correct args. It's possible in the future we will inspect each container and compare every arg.
 
-func RunningContainers() ([]C, error) {
+func RunningContainers() ([]Container, error) {
 	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
@@ -81,9 +91,9 @@ func RunningContainers() ([]C, error) {
 	return parseDockerPsOutput(string(psOut))
 }
 
-func parseDockerPsOutput(output string) ([]C, error) {
+func parseDockerPsOutput(output string) ([]Container, error) {
 	output = strings.TrimSpace(output)
-	runningContainers := []C{}
+	var runningContainers []Container
 
 	if output == "" {
 		return runningContainers, nil
@@ -118,14 +128,14 @@ func parseDockerPsOutput(output string) ([]C, error) {
 			continue
 		}
 
-		container := C{Name_: name, Image_: image}
+		container := Container{Name_: name, Image_: image}
 		runningContainers = append(runningContainers, container)
 	}
 
 	return runningContainers, nil
 }
 
-func NormalizeDockerContainers(desired []Container, current []Container) error {
+func NormalizeDockerContainers(desired ContainerCollectionI, current ContainerCollectionI) error {
 	removed := Diff(current, desired)
 	added := Diff(desired, current)
 

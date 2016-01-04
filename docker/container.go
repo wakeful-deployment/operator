@@ -1,12 +1,26 @@
 package docker
 
-import (
-	"fmt"
-	"os"
-	"strings"
-)
+type ContainerCollectionI interface {
+	Len() int
+	At(index int) ContainerI
+	Append(ContainerI)
+}
 
-type Container interface {
+type ContainerCollection []Container
+
+func (c ContainerCollection) Len() int {
+	return len(c)
+}
+
+func (c ContainerCollection) At(index int) Container {
+	return c[index]
+}
+
+func (c ContainerCollection) Append(container Container) {
+	c = append(c, container)
+}
+
+type ContainerI interface {
 	Name() string
 	Image() string
 	Ports() []string
@@ -15,54 +29,35 @@ type Container interface {
 	Tags() []string
 }
 
-func portsArgs(ports []string) []string {
-	if len(ports) == 0 {
-		return []string{"-P"}
-	}
-
-	var args []string
-	for _, port := range ports {
-		args = append(args, "-p", port)
-	}
-	return args
+type Container struct {
+	Name_    string
+	Image_   string
+	Ports_   []string
+	Env_     map[string]string
+	Restart_ string
+	Tags_    []string
 }
 
-func envArgs(vars map[string]string) []string {
-	var args []string
-
-	for key, value := range vars {
-		if strings.HasPrefix(value, "$") && strings.ToUpper(value) == value {
-			value, _ = os.LookupEnv(value[1:len(value)])
-		}
-		str := fmt.Sprintf("%s=%s", key, value)
-		args = append(args, "-e", str)
-	}
-
-	return args
+func (c Container) Name() string {
+	return c.Name_
 }
 
-func restartArg(setting string) string {
-	if setting == "" {
-		return "--restart=always"
-	}
-
-	return fmt.Sprintf("--restart=%s", setting)
+func (c Container) Image() string {
+	return c.Image_
 }
 
-func RunArgs(c Container) []string {
-	args := []string{"run", "-d", "--name", c.Name()}
-	args = append(args, portsArgs(c.Ports())...)
-	args = append(args, envArgs(c.Env())...)
-	args = append(args, restartArg(c.Restart()))
-	args = append(args, c.Image())
+func (c Container) Ports() []string {
+	return c.Ports_
+}
 
-	var cleaned []string
-	for _, arg := range args {
-		arg = strings.TrimSpace(arg)
-		if arg != "" {
-			cleaned = append(cleaned, arg)
-		}
-	}
+func (c Container) Env() map[string]string {
+	return c.Env_
+}
 
-	return cleaned
+func (c Container) Restart() string {
+	return c.Restart_
+}
+
+func (c Container) Tags() []string {
+	return c.Tags_
 }
