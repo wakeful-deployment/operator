@@ -1,10 +1,10 @@
-package consul
+package directory
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/wakeful-deployment/operator/node"
+	"github.com/wakeful-deployment/operator/service"
 	"strings"
 )
 
@@ -12,7 +12,7 @@ type KV struct {
 	Key         string
 	Value       string
 	ModifyIndex int
-	Service     node.Service
+	Service     service.Service
 }
 
 func (kv KV) Name() string {
@@ -27,7 +27,7 @@ func (kv KV) DecodedValue() []byte {
 }
 
 func DecodeService(kv KV) error {
-	service := node.Service{}
+	service := service.Service{}
 	b := kv.DecodedValue()
 	reader := bytes.NewReader(b)
 	err := json.NewDecoder(reader).Decode(&service)

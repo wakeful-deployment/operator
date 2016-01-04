@@ -3,47 +3,14 @@ package docker
 import (
 	"errors"
 	"fmt"
+	"github.com/wakeful-deployment/operator/container"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-func Diff(left ContainerCollectionI, right ContainerCollectionI) ContainerCollection {
-	var result ContainerCollection
-
-	for i := 0; i < left.Len(); i++ {
-		leftItem := left.At(i)
-		// Let's assume at first it is missing
-		isMissing := true
-
-		for i := 0; i < right.Len(); i++ {
-			rightItem := right.At(i)
-			if leftItem.Name() == rightItem.Name() {
-				// If we find a match, then it's not missing
-				isMissing = false
-				break
-			}
-		}
-
-		// If we found it to be missing in the end, then append to the diff
-		if isMissing {
-			container := Container{
-				Name_:    leftItem.Name(),
-				Image_:   leftItem.Image(),
-				Ports_:   leftItem.Ports(),
-				Env_:     leftItem.Env(),
-				Restart_: leftItem.Restart(),
-				Tags_:    leftItem.Tags(),
-			}
-			result.Append(container)
-		}
-	}
-
-	return result
-}
-
-func Run(c ContainerI) error {
-	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name(), c.Image())
+func Run(c container.Container) error {
+	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name, c.Image)
 
 	args := RunArgs(c)
 	_, err := exec.Command("docker", args...).Output()
@@ -56,10 +23,10 @@ func Run(c ContainerI) error {
 	return nil
 }
 
-func Stop(c ContainerI) error {
+func Stop(c container.Container) error {
 	fmt.Printf("INFO: stopping container with name '%s'\n", c.Name)
 
-	_, err := exec.Command("docker", "stop", c.Name()).Output()
+	_, err := exec.Command("docker", "stop", c.Name).Output()
 
 	if err != nil {
 		errMsg := fmt.Sprintf("ERROR: 'docker stop' failed: %v", err)
@@ -68,7 +35,7 @@ func Stop(c ContainerI) error {
 
 	time.Sleep(time.Second)
 
-	_, err = exec.Command("docker", "rm", c.Name()).Output()
+	_, err = exec.Command("docker", "rm", c.Name).Output()
 
 	if err != nil {
 		errMsg := fmt.Sprintf("ERROR: 'docker rm' failed: %v", err)
@@ -80,7 +47,7 @@ func Stop(c ContainerI) error {
 
 // For now, we assume if it's running then it's running with the correct args. It's possible in the future we will inspect each container and compare every arg.
 
-func RunningContainers() ([]Container, error) {
+func RunningContainers() ([]container.Container, error) {
 	psOut, err := exec.Command("docker", "ps", "--format", "{{.Names}} {{.Image}}").Output()
 
 	if err != nil {
@@ -91,9 +58,9 @@ func RunningContainers() ([]Container, error) {
 	return parseDockerPsOutput(string(psOut))
 }
 
-func parseDockerPsOutput(output string) ([]Container, error) {
+func parseDockerPsOutput(output string) ([]container.Container, error) {
 	output = strings.TrimSpace(output)
-	var runningContainers []Container
+	var runningContainers []container.Container
 
 	if output == "" {
 		return runningContainers, nil
@@ -128,16 +95,16 @@ func parseDockerPsOutput(output string) ([]Container, error) {
 			continue
 		}
 
-		container := Container{Name_: name, Image_: image}
+		container := container.Container{Name: name, Image: image}
 		runningContainers = append(runningContainers, container)
 	}
 
 	return runningContainers, nil
 }
 
-func NormalizeDockerContainers(desired ContainerCollectionI, current ContainerCollectionI) error {
-	removed := Diff(current, desired)
-	added := Diff(desired, current)
+func NormalizeDockerContainers(desired []container.Container, current []container.Container) error {
+	removed := container.Diff(current, desired)
+	added := container.Diff(desired, current)
 
 	fmt.Printf("INFO: Removed containers: %v\n", removed)
 	fmt.Printf("INFO: Added containers: %v\n", added)

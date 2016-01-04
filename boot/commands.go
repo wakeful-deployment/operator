@@ -2,7 +2,8 @@ package boot
 
 import (
 	"fmt"
-	"github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/directory"
+	"github.com/wakeful-deployment/operator/node"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func Boot(configPath string) (*Config, error) {
 		return nil, err
 	}
 
-	currentState, err := CurrentState()
+	currentState, err := node.CurrentState()
 
 	if err != nil {
 		return nil, err
@@ -38,14 +39,14 @@ func Boot(configPath string) (*Config, error) {
 	return config, nil
 }
 
-func NewConfigAndNormalize(config *Config, desiredState *consul.State) error {
+func NewConfigAndNormalize(config *Config, desiredState *directory.State) error {
 	desiredConfig, err := NewConfig(config, desiredState)
 
 	if err != nil {
 		return err
 	}
 
-	currentState, err := CurrentState()
+	currentState, err := node.CurrentState()
 
 	if err != nil {
 		return err
@@ -61,8 +62,8 @@ func NewConfigAndNormalize(config *Config, desiredState *consul.State) error {
 }
 
 func Once(currentConfig *Config) error {
-	stateUrl := consul.StateURL{Wait: "0s"}
-	desiredState, err := consul.DesiredState(stateUrl.String())
+	stateUrl := directory.StateURL{Wait: "0s"}
+	desiredState, err := directory.DesiredState(stateUrl.String())
 
 	if err != nil {
 		return err
@@ -77,11 +78,11 @@ func Once(currentConfig *Config) error {
 	return nil
 }
 
-func Loop(currentConfig *Config) {
-	stateUrl := consul.StateURL{Wait: "5m"}
+func Loop(currentConfig *Config, wait string) {
+	stateUrl := directory.StateURL{Wait: wait}
 
 	for {
-		desiredState, err := consul.DesiredState(stateUrl.String()) // this will block for some time
+		desiredState, err := directory.DesiredState(stateUrl.String()) // this will block for some time
 
 		if err != nil {
 			fmt.Println(err)

@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/wakeful-deployment/operator/boot"
-	"github.com/wakeful-deployment/operator/node"
+	"github.com/wakeful-deployment/operator/global"
 )
 
 func main() {
@@ -20,18 +20,18 @@ func main() {
 		panic("ERROR: Must provide -node and -consul flags")
 	}
 
-	node.Info.Name = *nodename
-	node.Info.Host = *consulHost
+	global.Info.Nodename = *nodename
+	global.Info.Consulhost = *consulHost
 
-	config, err := Boot(*configPath)
+	config, err := boot.Boot(*configPath)
 
 	if err != nil {
 		panic(err)
 	}
 
 	if *shouldLoop {
-		Loop(config)
+		boot.Loop(config, *wait)
 	} else {
-		Once(config)
+		boot.Once(config)
 	}
 }

@@ -5,18 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wakeful-deployment/operator/global"
+	"github.com/wakeful-deployment/operator/service"
 	"net/http"
 )
 
-func Diff(left []Service, right []Service) []Service {
-	var result []Service
+func Diff(left []service.Service, right []service.Service) []service.Service {
+	var result []service.Service
 
 	for _, leftItem := range left {
 		// Let's assume at first it is missing
 		isMissing := true
 
 		for _, rightItem := range right {
-			if leftItem.Name() == rightItem.Name() {
+			if leftItem.Name == rightItem.Name {
 				// If we find a match, then it's not missing
 				isMissing = false
 				break
@@ -32,10 +34,14 @@ func Diff(left []Service, right []Service) []Service {
 	return result
 }
 
-func Register(service Service) error {
-	s := S{Name_: service.Name(), Tags_: service.Tags()}
+type ServiceRepresentation struct {
+	Name    string
+	Address string
+}
 
-	json, err := json.Marshal(s)
+func Register(s service.Service) error {
+	rep := ServiceRepresentation{Name: s.Name, Address: global.Info.Consulhost}
+	json, err := json.Marshal(rep)
 
 	if err != nil {
 		return err
@@ -56,7 +62,7 @@ func Register(service Service) error {
 	return nil
 }
 
-func Deregister(s Service) error {
+func Deregister(s service.Service) error {
 	reader := bytes.NewReader([]byte{})
 	url := ServiceDeregisterURL(s)
 	resp, err := http.Post(url, "application/json", reader)
@@ -72,7 +78,7 @@ func Deregister(s Service) error {
 	return nil
 }
 
-func NormalizeServices(desired []Service, current []Service) error {
+func NormalizeServices(desired []service.Service, current []service.Service) error {
 	removed := Diff(current, desired)
 	added := Diff(desired, current)
 

@@ -1,8 +1,34 @@
-package node
+package service
 
 import (
 	"fmt"
+	"github.com/wakeful-deployment/operator/container"
+	"github.com/wakeful-deployment/operator/global"
 )
+
+func Diff(left []Service, right []Service) []Service {
+	var result []Service
+
+	for _, leftItem := range left {
+		// Let's assume at first it is missing
+		isMissing := true
+
+		for _, rightItem := range right {
+			if leftItem.Name == rightItem.Name {
+				// If we find a match, then it's not missing
+				isMissing = false
+				break
+			}
+		}
+
+		// If we found it to be missing in the end, then append to the diff
+		if isMissing {
+			result = append(result, leftItem)
+		}
+	}
+
+	return result
+}
 
 type PortPair struct {
 	Incoming int  `json:"incoming"`
@@ -49,26 +75,19 @@ func (s Service) FullEnv() map[string]string {
 	}
 
 	env["SERVICENAME"] = s.Name
-	env["NODE"] = Info.Name
-	env["CONSULHOST"] = Info.Host
+	env["NODE"] = global.Info.Nodename
+	env["CONSULHOST"] = global.Info.Consulhost
 
 	return env
 }
 
-func (s Service) Container() Container {
-	return Container{
-		Name_:    s.Name,
-		Image_:   s.Image,
-		Ports_:   s.SimplePorts(),
-		Env_:     s.FullEnv(),
-		Restart_: s.Restart,
-		Tags_:    s.Tags,
-	}
-}
-
-func (s Service) ConsulService() ConsulService {
-	return ConsulService{
-		Name_: s.Name,
-		Tags_: s.Tags,
+func (s Service) Container() container.Container {
+	return container.Container{
+		Name:    s.Name,
+		Image:   s.Image,
+		Ports:   s.SimplePorts(),
+		Env:     s.FullEnv(),
+		Restart: s.Restart,
+		Tags:    s.Tags,
 	}
 }

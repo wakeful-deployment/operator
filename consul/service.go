@@ -4,31 +4,27 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/wakeful-deployment/operator/node"
+	"github.com/wakeful-deployment/operator/global"
+	"github.com/wakeful-deployment/operator/service"
 	"io"
 	"net/http"
 )
 
 func ServicesURL() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/services", node.Info.Host)
+	return fmt.Sprintf("http://%s:8500/v1/agent/services", global.Info.Consulhost)
 }
 
 func ServiceRegisterURL() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/service/register", node.Info.Host)
+	return fmt.Sprintf("http://%s:8500/v1/agent/service/register", global.Info.Consulhost)
 }
 
-func ServiceDeregisterURL(s Service) string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", node.Info.Host, s.Name())
+func ServiceDeregisterURL(s service.Service) string {
+	return fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", global.Info.Consulhost, s.Name)
 }
 
-type Service interface {
-	Name() string
-	Tags() []string
-}
-
-func parseResponse(reader io.Reader) ([]S, error) {
-	var serviceDescriptions map[string]S
-	var services []S
+func parseResponse(reader io.Reader) ([]service.Service, error) {
+	var serviceDescriptions map[string]service.Service
+	var services []service.Service
 
 	err := json.NewDecoder(reader).Decode(&serviceDescriptions)
 
@@ -37,14 +33,14 @@ func parseResponse(reader io.Reader) ([]S, error) {
 	}
 
 	for name, service := range serviceDescriptions {
-		service.Name_ = name
+		service.Name = name
 		services = append(services, service)
 	}
 
 	return services, nil
 }
 
-func RegisteredServices() ([]S, error) {
+func RegisteredServices() ([]service.Service, error) {
 	resp, err := http.Get(ServicesURL())
 
 	if err != nil {

@@ -1,10 +1,11 @@
-package consul
+package directory
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/wakeful-deployment/operator/node"
+	"github.com/wakeful-deployment/operator/global"
+	"github.com/wakeful-deployment/operator/service"
 	"net/http"
 	"strconv"
 )
@@ -15,7 +16,7 @@ type StateURL struct {
 }
 
 func (c *StateURL) String() string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", node.Info.Host, node.Info.Name, c.Index, c.Wait)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", global.Info.Consulhost, global.Info.Nodename, c.Index, c.Wait)
 }
 
 type State struct {
@@ -23,14 +24,14 @@ type State struct {
 	KVs   []KV
 }
 
-func (s State) Services() (node.ServiceCollection, error) {
-	var services node.ServiceCollection
+func (s State) Services() ([]service.Service, error) {
+	var services []service.Service
 
 	for _, kv := range s.KVs {
 		err := DecodeService(kv)
 
 		if err != nil {
-			services.Append(kv.Service)
+			services = append(services, kv.Service)
 		} else {
 			return nil, err
 		}

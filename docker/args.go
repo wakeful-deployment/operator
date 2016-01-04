@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"github.com/wakeful-deployment/operator/container"
 	"os"
 	"strings"
 )
@@ -40,12 +41,12 @@ func restartArg(setting string) string {
 	return fmt.Sprintf("--restart=%s", setting)
 }
 
-func RunArgs(c ContainerI) []string {
-	args := []string{"run", "-d", "--name", c.Name()}
-	args = append(args, portsArgs(c.Ports())...)
-	args = append(args, envArgs(c.Env())...)
-	args = append(args, restartArg(c.Restart()))
-	args = append(args, c.Image())
+func RunArgs(c container.Container) []string {
+	args := []string{"run", "-d", "--name", c.Name}
+	args = append(args, portsArgs(c.Ports)...)
+	args = append(args, envArgs(c.Env)...)
+	args = append(args, restartArg(c.Restart))
+	args = append(args, c.Image)
 
 	var cleaned []string
 	for _, arg := range args {

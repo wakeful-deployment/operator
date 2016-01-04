@@ -3,14 +3,14 @@ package boot
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/wakeful-deployment/operator/consul"
-	"github.com/wakeful-deployment/operator/node"
+	"github.com/wakeful-deployment/operator/directory"
+	"github.com/wakeful-deployment/operator/service"
 	"io/ioutil"
 )
 
 type Config struct {
-	MetaData map[string]string       `json:"metadata"`
-	Services map[string]node.Service `json:"services"`
+	MetaData map[string]string          `json:"metadata"`
+	Services map[string]service.Service `json:"services"`
 }
 
 func ReadConfigFile(configPath string) (*Config, error) {
@@ -34,7 +34,7 @@ func ReadConfigFile(configPath string) (*Config, error) {
 	return config, nil
 }
 
-func NewConfig(prevConfig *Config, desiredState *consul.State) (*Config, error) {
+func NewConfig(prevConfig *Config, desiredState *directory.State) (*Config, error) {
 	config := &Config{}
 	*config = *prevConfig // clone
 

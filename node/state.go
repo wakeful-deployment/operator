@@ -1,13 +1,15 @@
-package boot
+package node
 
 import (
 	"github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/container"
 	"github.com/wakeful-deployment/operator/docker"
+	"github.com/wakeful-deployment/operator/service"
 )
 
 type State struct {
-	Containers []docker.Container
-	Services   []consul.Service
+	Containers []container.Container
+	Services   []service.Service
 }
 
 func CurrentState() (*State, error) {
