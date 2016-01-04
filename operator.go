@@ -30,8 +30,8 @@ func main() {
 
 	if global.CurrentState.Equal(global.ConfigFailed) {
 		if *shouldLoop {
-			for {
-			} // loop forever
+			for { // loop forever
+			}
 		} else {
 			panic(global.CurrentState.Error)
 		}

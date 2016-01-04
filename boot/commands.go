@@ -1,7 +1,6 @@
 package boot
 
 import (
-	"fmt"
 	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/node"
@@ -53,67 +52,50 @@ func Boot(state *State) {
 	global.Transition(global.NewState(global.Booted, nil))
 }
 
-func MergeStateAndNormalize(currentState *State, directoryState *directory.State) error {
+func Run(currentState *State, wait string) {
+	directoryStateUrl := directory.StateURL{Wait: wait}
+
+	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
+
+	if err != nil {
+		global.Transition(global.NewState(global.DirectoryStateFailed, err))
+		return
+	}
+
 	desiredState, err := MergeState(currentState, directoryState)
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.MergeStateFailed, err))
+		return
 	}
 
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.NodeStateFailed, err))
+		return
 	}
 
 	err = Normalize(desiredState, currentNodeState)
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.NormalizeFailed, err))
+		return
 	}
 
-	return nil
+	global.Transition(global.NewState(global.Running, nil))
+
+	directoryStateUrl.Index = directoryState.Index // for next iteration
+
 }
 
-func Once(currentState *State) error {
-	directoryStateUrl := directory.StateURL{Wait: "0s"}
-	directoryState, err := directory.GetState(directoryStateUrl.String())
-
-	if err != nil {
-		return err
-	}
-
-	err = MergeStateAndNormalize(currentState, directoryState)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+func Once(currentState *State) {
+	Run(currentState, "5s")
 }
 
 func Loop(currentState *State, wait string) {
-	directoryStateUrl := directory.StateURL{Wait: wait}
-
 	for {
-		directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
-
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-			continue
-		}
-
-		err = MergeStateAndNormalize(currentState, directoryState)
-
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-			continue
-		}
-
-		directoryStateUrl.Index = directoryState.Index // for next iteration
-
+		Run(currentState, wait)
 		time.Sleep(time.Second)
 	}
 }

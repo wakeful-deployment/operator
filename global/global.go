@@ -19,7 +19,9 @@ const (
 	Booted
 	ConsulFailed
 	NodeStateFailed
+	MergeStateFailed
 	NormalizeFailed
+	DirectoryStateFailed
 	Running
 	Failing
 )
@@ -33,6 +35,10 @@ func (s State) Equal(c fsm.State) bool {
 	return s.Const == c
 }
 
+func (s State) NotEqual(c fsm.State) bool {
+	return s.Const != c
+}
+
 func NewState(s fsm.State, e error) State {
 	return State{Const: s, Error: e}
 }
@@ -43,9 +49,11 @@ var AllowedTransitions = fsm.Rules{
 	fsm.From(Initial).To(Booting, ConfigFailed),
 	fsm.From(Booting).To(Booted, ConsulFailed, NodeStateFailed, NormalizeFailed),
 	fsm.From(ConsulFailed).To(Booting),
-	fsm.From(NodeStateFailed).To(Booting),
-	fsm.From(NormalizeFailed).To(Booting),
-	fsm.From(Booted).To(Running, Failing),
+	fsm.From(NodeStateFailed).To(Booting, Running),
+	fsm.From(MergeStateFailed).To(Booting, Running),
+	fsm.From(NormalizeFailed).To(Booting, Running),
+	fsm.From(DirectoryStateFailed).To(Booting, Running),
+	fsm.From(Booted).To(ConsulFailed, NodeStateFailed, NormalizeFailed, Running, Failing),
 	fsm.From(Running).To(Failing),
 	fsm.From(Failing).To(Running, Booting),
 }
