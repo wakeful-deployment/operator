@@ -1,7 +1,6 @@
 package docker
 
 import (
-	"github.com/wakeful-deployment/operator/consul"
 	"os"
 	"strings"
 	"testing"

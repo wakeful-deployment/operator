@@ -1,7 +1,6 @@
-package main
+package consul
 
 import (
-	"github.com/wakeful-deployment/operator/consul"
 	"io"
 	"net/http"
 	"strings"

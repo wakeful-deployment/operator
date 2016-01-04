@@ -23,57 +23,61 @@ In the future, the structure of the value's contents may change to allow for spe
 
 ## Bootstrapping
 
-On boot Operator relies on an operator.json file to specify configuration of the node as well as the "global" containers that should always be running on the node.
+On boot Operator relies on an operator.json file to specify configuration of the node as well as the "global" containers that should always be running on the node. Any cli flag can also be specified in this json file and will be merged into the already passed cli values.
 
 Example:
 
-```json
-{
-  "maximums": {
-    "cpu": 4
-  },
-  "boot_images": [{
-    "name": "statsite",
-    "image": "wakeful/wake-statsite:latest",
-    "ports": [{
-      "incoming": 8125,
-      "outgoing": 8125,
-      "udp": true
-      }]
-  }, {
-    "name": "consul",
-    "image": "wakeful/wake-consul-server:latest",
-    "ports": [{
-      "incoming": 8300,
-      "outgoing": 8300
-    }, {
-      "incoming": 8301,
-      "outgoing": 8301
-    }, {
-      "incoming": 8301,
-      "outgoing": 8301,
-      "udp": true
-    }, {
-      "incoming": 8302,
-      "outgoing": 8302,
-      "udp": true
-    }, {
-      "incoming": 8400,
-      "outgoing": 8400
-    }, {
-      "incoming": 8500,
-      "outgoing": 8500
-    }, {
-      "incoming": 8600,
-      "outgoing": 8600
-    }, {
-      "incoming": 8600,
-      "outgoing": 8600,
-      "udp": true
-    }],
-    "env": {
-      "BOOTSTRAP_EXPECT":"1"
+    {
+      "metadata": {
+        "location": "eastus",
+        "size": "Basic_A1"
+      },
+      "services": {
+        "statsite": {
+          "image": "wakeful/wake-statsite:latest",
+          "ports": [{
+            "incoming": 8125,
+            "outgoing": 8125,
+            "udp": true
+          }],
+          "env": {},
+          "restart": "always",
+          "tags": ["statsd", "udp"]
+          "checks": []
+        },
+        "consul": {
+          "image": "wakeful/wake-consul-server:latest",
+          "ports": [{
+            "incoming": 8300,
+            "outgoing": 8300
+          }, {
+            "incoming": 8301,
+            "outgoing": 8301
+          }, {
+            "incoming": 8301,
+            "outgoing": 8301,
+            "udp": true
+          }, {
+            "incoming": 8302,
+            "outgoing": 8302,
+            "udp": true
+          }, {
+            "incoming": 8400,
+            "outgoing": 8400
+          }, {
+            "incoming": 8500,
+            "outgoing": 8500
+          }, {
+            "incoming": 8600,
+            "outgoing": 8600
+          }, {
+            "incoming": 8600,
+            "outgoing": 8600,
+            "udp": true
+          }],
+          "env": {
+            "BOOTSTRAP_EXPECT":"1"
+          }
+        }
+      }
     }
-  }]
-}
-```
