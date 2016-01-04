@@ -14,16 +14,17 @@ type GlobalMetadata map[string]string
 
 const (
 	Initial fsm.State = 0 + iota
-	Booting
 	ConfigFailed
+	Booting
+	ReattemptingToBoot
 	Booted
 	ConsulFailed
-	NodeStateFailed
-	MergeStateFailed
-	NormalizeFailed
-	DirectoryStateFailed
+	FetchingNodeStateFailed
+	MergingStateFailed
+	NormalizingFailed
+	FetchingDirectoryStateFailed
+	AttemptingToRecover
 	Running
-	Failing
 )
 
 type State struct {
@@ -45,21 +46,23 @@ func NewState(s fsm.State, e error) State {
 
 var CurrentState = State{Const: Initial}
 
+var Failures = []fsm.State{ConsulFailed, FetchingNodeStateFailed, NormalizingFailed}
+
 var AllowedTransitions = fsm.Rules{
 	fsm.From(Initial).To(Booting, ConfigFailed),
-	fsm.From(Booting).To(Booted, ConsulFailed, NodeStateFailed, NormalizeFailed),
-	fsm.From(ConsulFailed).To(Booting),
-	fsm.From(NodeStateFailed).To(Booting, Running),
-	fsm.From(MergeStateFailed).To(Booting, Running),
-	fsm.From(NormalizeFailed).To(Booting, Running),
-	fsm.From(DirectoryStateFailed).To(Booting, Running),
-	fsm.From(Booted).To(ConsulFailed, NodeStateFailed, NormalizeFailed, Running, Failing),
-	fsm.From(Running).To(Failing),
-	fsm.From(Failing).To(Running, Booting),
+	fsm.From(Booting).To(append(Failures, Booted)...),
+	fsm.From(ReattemptingToBoot).To(append(Failures, Booted)...),
+	fsm.From(ConsulFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(FetchingNodeStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(MergingStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(NormalizingFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(FetchingDirectoryStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(Booted).To(append(Failures, Running)...),
+	fsm.From(Running).To(append(Failures, Running)...),
 }
 
 func Transition(newState State) error {
-	if newState.Const < Initial || newState.Const > Failing {
+	if newState.Const < Initial || newState.Const > Running {
 		panic("FATAL ERROR: Cannot transition to illegal state")
 	}
 

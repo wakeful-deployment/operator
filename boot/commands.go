@@ -38,14 +38,14 @@ func Boot(state *State) {
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
-		global.Transition(global.NewState(global.NodeStateFailed, err))
+		global.Transition(global.NewState(global.FetchingNodeStateFailed, err))
 		return
 	}
 
 	err = Normalize(state, currentNodeState)
 
 	if err != nil {
-		global.Transition(global.NewState(global.NormalizeFailed, err))
+		global.Transition(global.NewState(global.NormalizingFailed, err))
 		return
 	}
 
@@ -53,40 +53,43 @@ func Boot(state *State) {
 }
 
 func Run(currentState *State, wait string) {
+	if global.CurrentState.NotEqual(global.Running) && global.CurrentState.NotEqual(global.Booted) {
+		global.Transition(global.NewState(global.AttemptingToRecover, global.CurrentState.Error))
+	}
+
 	directoryStateUrl := directory.StateURL{Wait: wait}
 
 	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
 
 	if err != nil {
-		global.Transition(global.NewState(global.DirectoryStateFailed, err))
+		global.Transition(global.NewState(global.FetchingDirectoryStateFailed, err))
 		return
 	}
 
 	desiredState, err := MergeState(currentState, directoryState)
 
 	if err != nil {
-		global.Transition(global.NewState(global.MergeStateFailed, err))
+		global.Transition(global.NewState(global.MergingStateFailed, err))
 		return
 	}
 
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
-		global.Transition(global.NewState(global.NodeStateFailed, err))
+		global.Transition(global.NewState(global.FetchingNodeStateFailed, err))
 		return
 	}
 
 	err = Normalize(desiredState, currentNodeState)
 
 	if err != nil {
-		global.Transition(global.NewState(global.NormalizeFailed, err))
+		global.Transition(global.NewState(global.NormalizingFailed, err))
 		return
 	}
 
 	global.Transition(global.NewState(global.Running, nil))
 
 	directoryStateUrl.Index = directoryState.Index // for next iteration
-
 }
 
 func Once(currentState *State) {
