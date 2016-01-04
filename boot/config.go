@@ -38,7 +38,15 @@ func NewConfig(prevConfig *Config, desiredState *directory.State) (*Config, erro
 	config := &Config{}
 	*config = *prevConfig // clone
 
-	// actually put the state into the config
+	desiredServices, err := desiredState.Services()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range desiredServices {
+		config.Services = append(config.Services, s)
+	}
 
 	return config, nil
 }
