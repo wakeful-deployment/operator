@@ -3,73 +3,70 @@ package boot
 import (
 	"fmt"
 	"github.com/wakeful-deployment/operator/directory"
+	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/node"
 	"time"
 )
 
-func detectOrBootConsul(config *Config) error {
+func DetectOrBootConsul(state *State) error {
+	// TODO
 	return nil
 }
 
-func Boot(configPath string) (*Config, error) {
-	config, err := ReadConfigFile(configPath)
+func LoadStateFromFile(path string) *State {
+	state, err := ReadStateFromConfigFile(path)
 
 	if err != nil {
-		return nil, err
+		global.Transition(global.NewState(global.ConfigFailed, err))
+		return nil
 	}
 
-	err = detectOrBootConsul(config)
-
-	if err != nil {
-		return nil, err
-	}
-
-	currentState, err := node.CurrentState()
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = Normalize(config, currentState)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return config, nil
+	return state
 }
 
-func NewConfigAndNormalize(config *Config, desiredState *directory.State) error {
-	desiredConfig, err := NewConfig(config, desiredState)
+func Boot(state *State) {
+	var err error
+
+	global.Transition(global.NewState(global.Booting, nil))
+
+	err = DetectOrBootConsul(state)
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.ConsulFailed, err))
+		return
 	}
 
-	currentState, err := node.CurrentState()
+	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.NodeStateFailed, err))
+		return
 	}
 
-	err = Normalize(desiredConfig, currentState)
+	err = Normalize(state, currentNodeState)
 
 	if err != nil {
-		return err
+		global.Transition(global.NewState(global.NormalizeFailed, err))
+		return
 	}
 
-	return nil
+	global.Transition(global.NewState(global.Booted, nil))
 }
 
-func Once(currentConfig *Config) error {
-	stateUrl := directory.StateURL{Wait: "0s"}
-	desiredState, err := directory.DesiredState(stateUrl.String())
+func MergeStateAndNormalize(currentState *State, directoryState *directory.State) error {
+	desiredState, err := MergeState(currentState, directoryState)
 
 	if err != nil {
 		return err
 	}
 
-	err = NewConfigAndNormalize(currentConfig, desiredState)
+	currentNodeState, err := node.CurrentState()
+
+	if err != nil {
+		return err
+	}
+
+	err = Normalize(desiredState, currentNodeState)
 
 	if err != nil {
 		return err
@@ -78,11 +75,28 @@ func Once(currentConfig *Config) error {
 	return nil
 }
 
-func Loop(currentConfig *Config, wait string) {
-	stateUrl := directory.StateURL{Wait: wait}
+func Once(currentState *State) error {
+	directoryStateUrl := directory.StateURL{Wait: "0s"}
+	directoryState, err := directory.GetState(directoryStateUrl.String())
+
+	if err != nil {
+		return err
+	}
+
+	err = MergeStateAndNormalize(currentState, directoryState)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Loop(currentState *State, wait string) {
+	directoryStateUrl := directory.StateURL{Wait: wait}
 
 	for {
-		desiredState, err := directory.DesiredState(stateUrl.String()) // this will block for some time
+		directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
 
 		if err != nil {
 			fmt.Println(err)
@@ -90,7 +104,7 @@ func Loop(currentConfig *Config, wait string) {
 			continue
 		}
 
-		err = NewConfigAndNormalize(currentConfig, desiredState)
+		err = MergeStateAndNormalize(currentState, directoryState)
 
 		if err != nil {
 			fmt.Println(err)
@@ -98,7 +112,7 @@ func Loop(currentConfig *Config, wait string) {
 			continue
 		}
 
-		stateUrl.Index = desiredState.Index // for next iteration
+		directoryStateUrl.Index = directoryState.Index // for next iteration
 
 		time.Sleep(time.Second)
 	}

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/wakeful-deployment/operator/boot"
 	"github.com/wakeful-deployment/operator/global"
+	"time"
 )
 
 func main() {
@@ -23,15 +24,32 @@ func main() {
 	global.Info.Nodename = *nodename
 	global.Info.Consulhost = *consulHost
 
-	config, err := boot.Boot(*configPath)
+	// TODO open a tcp port and respond with current state
 
-	if err != nil {
-		panic(err)
+	state := boot.LoadStateFromFile(*configPath)
+
+	if global.CurrentState.Equal(global.ConfigFailed) {
+		if *shouldLoop {
+			for {
+			} // loop forever
+		} else {
+			panic(global.CurrentState.Error)
+		}
+	}
+
+	for {
+		boot.Boot(state)
+
+		if global.CurrentState.Equal(global.Booted) {
+			break
+		}
+
+		time.Sleep(6 * time.Second)
 	}
 
 	if *shouldLoop {
-		boot.Loop(config, *wait)
+		boot.Loop(state, *wait)
 	} else {
-		boot.Once(config)
+		boot.Once(state)
 	}
 }

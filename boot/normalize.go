@@ -10,16 +10,16 @@ import (
 )
 
 // reconcile the desired config with the current state
-func Normalize(config *Config, currentState *node.State) error {
+func Normalize(desiredState *State, currentNodeState *node.State) error {
 	// always try to fix the containers before fixing the registrations
 
 	var desiredContainers []container.Container
 
-	for _, service := range config.Services {
+	for _, service := range desiredState.Services {
 		desiredContainers = append(desiredContainers, service.Container())
 	}
 
-	err := docker.NormalizeDockerContainers(desiredContainers, currentState.Containers)
+	err := docker.NormalizeDockerContainers(desiredContainers, currentNodeState.Containers)
 
 	if err != nil {
 		fmt.Println(err)
@@ -30,11 +30,11 @@ func Normalize(config *Config, currentState *node.State) error {
 
 	var desiredServices []service.Service
 
-	for _, s := range config.Services {
+	for _, s := range desiredState.Services {
 		desiredServices = append(desiredServices, s)
 	}
 
-	err = consul.NormalizeServices(desiredServices, currentState.Services)
+	err = consul.NormalizeServices(desiredServices, currentNodeState.Services)
 
 	if err != nil {
 		fmt.Println(err)

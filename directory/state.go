@@ -91,7 +91,7 @@ func decodeServices(kvs []KV) error {
 	return nil
 }
 
-func DesiredState(url string) (*State, error) {
+func GetState(url string) (*State, error) {
 	state := &State{}
 	resp, err := http.Get(url)
 
