@@ -1,7 +1,6 @@
 package global
 
 import (
-	"fmt"
 	"github.com/wakeful-deployment/operator/fsm"
 )
 
@@ -12,39 +11,35 @@ type GlobalInfo struct {
 
 type GlobalMetadata map[string]string
 
-const (
-	Initial fsm.State = 0 + iota
-	ConfigFailed
-	Booting
-	ReattemptingToBoot
-	Booted
-	ConsulFailed
-	FetchingNodeStateFailed
-	MergingStateFailed
-	NormalizingFailed
-	FetchingDirectoryStateFailed
-	AttemptingToRecover
-	Running
+var (
+	Initial                      = fsm.State{Name: "Initial"}
+	ConfigFailed                 = fsm.State{Name: "ConfigFailed"}
+	Booting                      = fsm.State{Name: "Booting"}
+	ReattemptingToBoot           = fsm.State{Name: "ReattemptingToBoot"}
+	Booted                       = fsm.State{Name: "Booted"}
+	ConsulFailed                 = fsm.State{Name: "ConsulFailed"}
+	FetchingNodeStateFailed      = fsm.State{Name: "FetchingNodeStateFailed"}
+	MergingStateFailed           = fsm.State{Name: "MergingStateFailed"}
+	NormalizingFailed            = fsm.State{Name: "NormalizingFailed"}
+	FetchingDirectoryStateFailed = fsm.State{Name: "FetchingDirectoryStateFailed"}
+	AttemptingToRecover          = fsm.State{Name: "AttemptingToRecover"}
+	Running                      = fsm.State{Name: "Running"}
 )
 
-type State struct {
-	Const fsm.State
-	Error error
+var states = []fsm.State{
+	Initial,
+	ConsulFailed,
+	Booting,
+	ReattemptingToBoot,
+	Booted,
+	ConfigFailed,
+	FetchingNodeStateFailed,
+	MergingStateFailed,
+	NormalizingFailed,
+	FetchingDirectoryStateFailed,
+	AttemptingToRecover,
+	Running,
 }
-
-func (s State) Equal(c fsm.State) bool {
-	return s.Const == c
-}
-
-func (s State) NotEqual(c fsm.State) bool {
-	return s.Const != c
-}
-
-func NewState(s fsm.State, e error) State {
-	return State{Const: s, Error: e}
-}
-
-var CurrentState = State{Const: Initial}
 
 var Failures = []fsm.State{ConsulFailed, FetchingNodeStateFailed, NormalizingFailed}
 
@@ -61,19 +56,7 @@ var AllowedTransitions = fsm.Rules{
 	fsm.From(Running).To(append(Failures, Running)...),
 }
 
-func Transition(newState State) error {
-	if newState.Const < Initial || newState.Const > Running {
-		panic("FATAL ERROR: Cannot transition to illegal state")
-	}
-
-	if AllowedTransitions.Test(CurrentState.Const, newState.Const) {
-		fmt.Println(fmt.Sprintf("Transitioned from %v to %v", CurrentState, newState))
-		CurrentState = newState
-		return nil
-	} else {
-		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %s to %s, not allowed", newState, CurrentState))
-	}
-}
+var Machine = fsm.Machine{CurrentState: Initial, Rules: AllowedTransitions, States: states}
 
 var Info = GlobalInfo{}
 var Metadata = GlobalMetadata{}

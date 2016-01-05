@@ -102,7 +102,7 @@ func parseDockerPsOutput(output string) ([]container.Container, error) {
 	return runningContainers, nil
 }
 
-func NormalizeDockerContainers(desired []container.Container, current []container.Container) error {
+func NormalizeContainers(desired []container.Container, current []container.Container) error {
 	removed := container.Diff(current, desired)
 	added := container.Diff(desired, current)
 

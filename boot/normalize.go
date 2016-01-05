@@ -19,7 +19,7 @@ func Normalize(desiredState *State, currentNodeState *node.State) error {
 		desiredContainers = append(desiredContainers, service.Container())
 	}
 
-	err := docker.NormalizeDockerContainers(desiredContainers, currentNodeState.Containers)
+	err := docker.NormalizeContainers(desiredContainers, currentNodeState.Containers)
 
 	if err != nil {
 		fmt.Println(err)

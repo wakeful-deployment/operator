@@ -1,6 +1,48 @@
 package fsm
 
-type State int
+import (
+	"fmt"
+)
+
+type Machine struct {
+	CurrentState State
+	Rules        Rules
+	States       []State
+}
+
+func (m Machine) Transition(to State, e error) {
+	stateIsPresent := false
+	for _, s := range m.States {
+		if to.Equal(s) {
+			stateIsPresent = true
+		}
+	}
+
+	if !stateIsPresent {
+		panic(fmt.Sprintf("FATAL ERROR: Cannot transition to illegal state: %v", to))
+	}
+
+	if m.Rules.Test(m.CurrentState, to) {
+		fmt.Println(fmt.Sprintf("Transitioned from %v to %v", m.CurrentState, to))
+		to.Error = e
+		m.CurrentState = to
+	} else {
+		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %s to %s, not allowed", m.CurrentState, to))
+	}
+}
+
+type State struct {
+	Name  string
+	Error error
+}
+
+func (s State) Equal(other State) bool {
+	return s.Name == other.Name
+}
+
+func (s State) NotEqual(other State) bool {
+	return s.Name != other.Name
+}
 
 type Rule struct {
 	From State
@@ -8,12 +50,12 @@ type Rule struct {
 }
 
 func (r Rule) Test(current State, next State) bool {
-	if current != r.From {
+	if current.NotEqual(r.From) {
 		return false
 	}
 
 	for _, s := range r.To {
-		if next == s {
+		if next.Equal(s) {
 			return true
 		}
 	}

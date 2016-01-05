@@ -34,9 +34,9 @@ func ReadStateFromConfigFile(path string) (*State, error) {
 	return state, nil
 }
 
-func MergeState(currentState *State, directoryState *directory.State) (*State, error) {
+func MergeStates(bootState *State, directoryState *directory.State) (*State, error) {
 	newState := &State{}
-	*newState = *currentState // clone
+	*newState = *bootState // clone
 
 	directoryServices, err := directoryState.Services()
 

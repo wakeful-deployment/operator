@@ -26,21 +26,21 @@ func main() {
 
 	// TODO open a tcp port and respond with current state
 
-	state := boot.LoadStateFromFile(*configPath)
+	state := boot.LoadBootStateFromFile(*configPath)
 
-	if global.CurrentState.Equal(global.ConfigFailed) {
+	if global.Machine.CurrentState.Equal(global.ConfigFailed) {
 		if *shouldLoop {
 			for { // loop forever
 			}
 		} else {
-			panic(global.CurrentState.Error)
+			panic(global.Machine.CurrentState.Error)
 		}
 	}
 
 	for {
 		boot.Boot(state)
 
-		if global.CurrentState.Equal(global.Booted) {
+		if global.Machine.CurrentState.Equal(global.Booted) {
 			break
 		}
 
