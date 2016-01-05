@@ -1,16 +1,75 @@
 package boot
 
 import (
+	"errors"
 	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/directory"
+	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/node"
+	"net/http"
 	"time"
 )
 
-func DetectOrBootConsul(state *State) error {
-	// TODO
-	return nil
+const consulCheckUrl = "127.0.0.1:8500"
+const consulCheckTimeout = 5 * time.Second
+
+func detectConsul() error {
+	client := http.Client{Timeout: consulCheckTimeout}
+	resp, err := client.Get(consulCheckUrl)
+
+	if err == nil && resp.StatusCode == 200 {
+		return nil
+	}
+
+	return errors.New("consul is not responding on port 8500")
+}
+
+func detectOrBootConsul(state *State) error {
+	err := detectConsul()
+
+	if err == nil {
+		// consul was detected
+		return nil
+	}
+
+	// it's not responding, so let's see if it's running
+
+	containers, err := docker.RunningContainers()
+
+	if err != nil {
+		return errors.New("consul and docker are both not responding")
+	}
+
+	running := false
+	for _, container := range containers {
+		if container.Name == "consul" {
+			running = true
+			break
+		}
+	}
+
+	if running {
+		return errors.New("consul is running, but not responding on port 8500")
+	}
+
+	// it's not running, so let's try to boot it
+
+	consulService := state.Services["consul"]
+
+	if consulService.Name != "consul" {
+		return errors.New("consul is not running. It is also not listed as a service, so cannot attempt to boot it")
+	}
+
+	consulContainer := consulService.Container()
+	err = docker.Run(consulContainer)
+
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(time.Second)                // give docker some time to make sure it would show up in the process list
+	return errors.New("consul is booting") // the caller of this function will attempt again which should attempt to detect consul
 }
 
 func LoadBootStateFromFile(path string) *State {
@@ -27,7 +86,7 @@ func LoadBootStateFromFile(path string) *State {
 func Boot(bootState *State) {
 	global.Machine.Transition(global.Booting, nil)
 
-	err := DetectOrBootConsul(bootState)
+	err := detectOrBootConsul(bootState)
 
 	if err != nil {
 		global.Machine.Transition(global.ConsulFailed, err)
