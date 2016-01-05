@@ -103,11 +103,11 @@ func Boot(bootState *State) {
 		return
 	}
 
-	err = consul.PostMetadata(bootState.MetaData)
-	if err != nil {
-		global.Machine.Transition(global.PostingMetadataFailed, err)
-		return
-	}
+	// err = consul.PostMetadata(bootState.MetaData)
+	// if err != nil {
+	// 	global.Machine.Transition(global.PostingMetadataFailed, err)
+	// 	return
+	// }
 
 	currentNodeState, err := node.CurrentState()
 
