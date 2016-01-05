@@ -98,7 +98,11 @@ func main() {
 	global.Info.Nodename = state.Nodename
 	global.Info.Consulhost = state.ConsulHost
 
+	fmt.Println(fmt.Sprintf("info: %v", global.Info))
+
 	// boot
+
+	fmt.Println(fmt.Sprintf("booting: %v", state))
 
 	for {
 		boot.Boot(state)
