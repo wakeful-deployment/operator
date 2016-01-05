@@ -19,6 +19,10 @@ func consulCheckUrl() string {
 const consulCheckTimeout = 5 * time.Second
 
 func detectConsul() error {
+	url := consulCheckUrl()
+
+	fmt.Println(fmt.Sprintf("checking consul at %s", url))
+
 	client := http.Client{Timeout: consulCheckTimeout}
 	resp, err := client.Get(consulCheckUrl())
 
