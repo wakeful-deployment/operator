@@ -2,6 +2,7 @@ package boot
 
 import (
 	"errors"
+	"fmt"
 	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/docker"
@@ -11,12 +12,15 @@ import (
 	"time"
 )
 
-const consulCheckUrl = "127.0.0.1:8500"
+func consulCheckUrl() string {
+	return fmt.Sprintf("%s:8500", global.Info.Consulhost)
+}
+
 const consulCheckTimeout = 5 * time.Second
 
 func detectConsul() error {
 	client := http.Client{Timeout: consulCheckTimeout}
-	resp, err := client.Get(consulCheckUrl)
+	resp, err := client.Get(consulCheckUrl())
 
 	if err == nil && resp.StatusCode == 200 {
 		return nil
