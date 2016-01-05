@@ -13,7 +13,7 @@
       }],
       "env": {},
       "restart": "always",
-      "tags": ["statsd", "udp"]
+      "tags": ["statsd", "udp"],
       "checks": []
     },
     "consul": {
