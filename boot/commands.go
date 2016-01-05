@@ -126,7 +126,7 @@ func Boot(bootState *State) {
 	global.Machine.Transition(global.Booted, nil)
 }
 
-func Run(bootState *State, wait string) {
+func Run(bootState *State, wait string, index int) int {
 	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
 		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}
@@ -137,44 +137,46 @@ func Run(bootState *State, wait string) {
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
-		return
+		return 0
 	}
 
 	desiredState, err := MergeStates(bootState, directoryState)
 
 	if err != nil {
 		global.Machine.Transition(global.MergingStateFailed, err)
-		return
+		return 0
 	}
 
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingNodeStateFailed, err)
-		return
+		return 0
 	}
 
 	err = Normalize(desiredState, currentNodeState)
 
 	if err != nil {
 		global.Machine.Transition(global.NormalizingFailed, err)
-		return
+		return 0
 	}
 
 	if !global.Machine.IsCurrently(global.Running) {
 		global.Machine.Transition(global.Running, nil)
 	}
 
-	directoryStateUrl.Index = directoryState.Index // for next iteration
+	return directoryState.Index // for next iteration
 }
 
 func Once(bootState *State) {
-	Run(bootState, "5s")
+	Run(bootState, "5s", 0)
 }
 
 func Loop(bootState *State, wait string) {
+	index := 0
+
 	for {
-		Run(bootState, wait)
+		index = Run(bootState, wait, index)
 		time.Sleep(time.Second)
 	}
 }
