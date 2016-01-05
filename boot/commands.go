@@ -84,7 +84,9 @@ func LoadBootStateFromFile(path string) *State {
 }
 
 func Boot(bootState *State) {
-	global.Machine.Transition(global.Booting, nil)
+	if !global.Machine.IsCurrently(global.Booting) {
+		global.Machine.Transition(global.Booting, nil)
+	}
 
 	err := detectOrBootConsul(bootState)
 
