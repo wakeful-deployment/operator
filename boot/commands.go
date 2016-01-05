@@ -1,6 +1,7 @@
 package boot
 
 import (
+	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/node"
@@ -23,19 +24,21 @@ func LoadBootStateFromFile(path string) *State {
 	return state
 }
 
-func Boot(state *State) {
-	var err error
-
+func Boot(bootState *State) {
 	global.Machine.Transition(global.Booting, nil)
 
-	err = DetectOrBootConsul(state)
+	err := DetectOrBootConsul(bootState)
 
 	if err != nil {
 		global.Machine.Transition(global.ConsulFailed, err)
 		return
 	}
 
-	// TODO: post metadata to directory
+	err = consul.PostMetadata(bootState.MetaData)
+	if err != nil {
+		global.Machine.Transition(global.PostingMetadataFailed, err)
+		return
+	}
 
 	currentNodeState, err := node.CurrentState()
 
@@ -44,7 +47,7 @@ func Boot(state *State) {
 		return
 	}
 
-	err = Normalize(state, currentNodeState)
+	err = Normalize(bootState, currentNodeState)
 
 	if err != nil {
 		global.Machine.Transition(global.NormalizingFailed, err)

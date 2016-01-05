@@ -8,6 +8,7 @@ import (
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/service"
 	"net/http"
+	"strings"
 )
 
 func Diff(left []service.Service, right []service.Service) []service.Service {
@@ -104,6 +105,27 @@ func NormalizeServices(desired []service.Service, current []service.Service) err
 	if len(errs) > 0 {
 		errMsg := fmt.Sprintf("ERROR: At least 1 error normalizing services: %v", errs)
 		return errors.New(errMsg)
+	}
+
+	return nil
+}
+
+func MetadataURL(key string) string {
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/metadata/%s", global.Info.Consulhost, global.Info.Nodename, key)
+}
+
+func PostMetadata(metadata map[string]string) error {
+	for key, value := range metadata {
+		reader := strings.NewReader(value)
+		resp, err := http.Post(MetadataURL(key), "application/json", reader)
+
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != 200 {
+			return errors.New(fmt.Sprintf("Metadata failed to POST: k=%s v=%s", key, value))
+		}
 	}
 
 	return nil

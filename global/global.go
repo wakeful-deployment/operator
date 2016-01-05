@@ -15,6 +15,7 @@ var (
 	Initial                      = fsm.State{Name: "Initial"}
 	ConfigFailed                 = fsm.State{Name: "ConfigFailed"}
 	Booting                      = fsm.State{Name: "Booting"}
+	PostingMetadataFailed        = fsm.State{Name: "PostingMetadataFailed"}
 	ReattemptingToBoot           = fsm.State{Name: "ReattemptingToBoot"}
 	Booted                       = fsm.State{Name: "Booted"}
 	ConsulFailed                 = fsm.State{Name: "ConsulFailed"}
@@ -28,11 +29,12 @@ var (
 
 var states = []fsm.State{
 	Initial,
-	ConsulFailed,
+	ConfigFailed,
 	Booting,
+	PostingMetadataFailed,
+	ConsulFailed,
 	ReattemptingToBoot,
 	Booted,
-	ConfigFailed,
 	FetchingNodeStateFailed,
 	MergingStateFailed,
 	NormalizingFailed,
@@ -45,14 +47,17 @@ var Failures = []fsm.State{ConsulFailed, FetchingNodeStateFailed, NormalizingFai
 
 var AllowedTransitions = fsm.Rules{
 	fsm.From(Initial).To(Booting, ConfigFailed),
+	fsm.From(ConfigFailed).To(),
 	fsm.From(Booting).To(append(Failures, Booted)...),
-	fsm.From(ReattemptingToBoot).To(append(Failures, Booted)...),
+	fsm.From(PostingMetadataFailed).To(ReattemptingToBoot),
 	fsm.From(ConsulFailed).To(ReattemptingToBoot, AttemptingToRecover),
+	fsm.From(ReattemptingToBoot).To(append(Failures, Booted)...),
+	fsm.From(Booted).To(append(Failures, Running)...),
 	fsm.From(FetchingNodeStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
 	fsm.From(MergingStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
 	fsm.From(NormalizingFailed).To(ReattemptingToBoot, AttemptingToRecover),
 	fsm.From(FetchingDirectoryStateFailed).To(ReattemptingToBoot, AttemptingToRecover),
-	fsm.From(Booted).To(append(Failures, Running)...),
+	fsm.From(AttemptingToRecover).To(append(Failures, Running)...),
 	fsm.From(Running).To(append(Failures, Running)...),
 }
 
