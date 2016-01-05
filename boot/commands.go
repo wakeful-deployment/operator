@@ -161,7 +161,9 @@ func Run(bootState *State, wait string) {
 		return
 	}
 
-	global.Machine.Transition(global.Running, nil)
+	if !global.Machine.IsCurrently(global.Running) {
+		global.Machine.Transition(global.Running, nil)
+	}
 
 	directoryStateUrl.Index = directoryState.Index // for next iteration
 }
