@@ -6,9 +6,19 @@ import (
 	"fmt"
 	"github.com/wakeful-deployment/operator/boot"
 	"github.com/wakeful-deployment/operator/global"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 )
+
+func runServer() {
+	http.HandleFunc("/api/state", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, fmt.Sprintf("%v", global.Machine.CurrentState))
+	})
+
+	http.ListenAndServe(":8000", nil)
+}
 
 func main() {
 	var (
@@ -21,23 +31,18 @@ func main() {
 	)
 	flag.Parse()
 
-	// TODO open a tcp port and respond with current state
-
 	state := boot.LoadBootStateFromFile(*configPath)
+
+	go runServer()
+
+	// panic if config failed to load
+
+	if global.Machine.IsCurrently(global.ConfigFailed) {
+		panic(global.Machine.CurrentState.Error)
+	}
 
 	if *shouldLoop {
 		state.ShouldLoop = true
-	}
-
-	// panic or loop if config failed to load
-
-	if global.Machine.IsCurrently(global.ConfigFailed) {
-		if state.ShouldLoop {
-			for { // loop forever
-			}
-		} else {
-			panic(global.Machine.CurrentState.Error)
-		}
 	}
 
 	// proceed with configuration

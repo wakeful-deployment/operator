@@ -10,7 +10,7 @@ type Machine struct {
 	States       []State
 }
 
-func (m Machine) Transition(to State, e error) {
+func (m *Machine) Transition(to State, e error) {
 	stateIsPresent := false
 	for _, s := range m.States {
 		if to.Equal(s) {
@@ -23,9 +23,9 @@ func (m Machine) Transition(to State, e error) {
 	}
 
 	if m.Rules.Test(m.CurrentState, to) {
-		fmt.Println(fmt.Sprintf("Transitioned from %v to %v", m.CurrentState, to))
 		to.Error = e
 		m.CurrentState = to
+		fmt.Println(fmt.Sprintf("Transitioned from %v to %v", m.CurrentState, to))
 	} else {
 		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %s to %s, not allowed", m.CurrentState, to))
 	}
