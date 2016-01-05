@@ -3,7 +3,7 @@ package boot
 import (
 	"errors"
 	"fmt"
-	"github.com/wakeful-deployment/operator/consul"
+	// "github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
