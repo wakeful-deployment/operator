@@ -13,7 +13,7 @@ import (
 )
 
 func consulCheckUrl() string {
-	return fmt.Sprintf("%s:8500", global.Info.Consulhost)
+	return fmt.Sprintf("http://%s:8500/", global.Info.Consulhost)
 }
 
 const consulCheckTimeout = 5 * time.Second
