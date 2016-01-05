@@ -12,7 +12,6 @@ type KV struct {
 	Key         string
 	Value       string
 	ModifyIndex int
-	Service     service.Service
 }
 
 func (kv KV) Name() string {
@@ -26,18 +25,17 @@ func (kv KV) DecodedValue() []byte {
 	return decoded
 }
 
-func DecodeService(kv KV) error {
+func DecodeService(kv KV) (service.Service, error) {
 	service := service.Service{}
 	b := kv.DecodedValue()
 	reader := bytes.NewReader(b)
 	err := json.NewDecoder(reader).Decode(&service)
 
 	if err != nil {
-		return err
+		return service, err
 	}
 
 	service.Name = kv.Name()
-	kv.Service = service
 
-	return nil
+	return service, nil
 }

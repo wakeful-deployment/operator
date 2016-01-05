@@ -28,10 +28,10 @@ func (s State) Services() ([]service.Service, error) {
 	var services []service.Service
 
 	for _, kv := range s.KVs {
-		err := DecodeService(kv)
+		service, err := DecodeService(kv)
 
 		if err != nil {
-			services = append(services, kv.Service)
+			services = append(services, service)
 		} else {
 			return nil, err
 		}
@@ -79,18 +79,6 @@ func handleConsulResponse(resp *http.Response, state *State) error {
 	}
 }
 
-func decodeServices(kvs []KV) error {
-	for _, kv := range kvs {
-		err := DecodeService(kv)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func GetState(url string) (*State, error) {
 	state := &State{}
 	resp, err := http.Get(url)
@@ -100,12 +88,6 @@ func GetState(url string) (*State, error) {
 	}
 
 	err = handleConsulResponse(resp, state)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = decodeServices(state.KVs)
 
 	if err != nil {
 		return nil, err
