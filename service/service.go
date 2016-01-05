@@ -39,8 +39,6 @@ type PortPair struct {
 // type Check struct{}
 // func NewHTTPHealthCheck(...) HealthCheck { ... return with sane defaults }
 
-type ServicesMap map[string]Service
-
 type Service struct {
 	Name    string            `json:"name"`
 	Image   string            `json:"image"`
@@ -55,7 +53,7 @@ func (s Service) SimplePorts() []string {
 	var ports []string
 
 	for _, pair := range s.Ports {
-		str := fmt.Sprintf("%s:%s", pair.Incoming, pair.Outgoing)
+		str := fmt.Sprintf("%d:%d", pair.Incoming, pair.Outgoing)
 
 		if pair.UDP {
 			str = fmt.Sprintf("%s/udp", str)
@@ -68,7 +66,7 @@ func (s Service) SimplePorts() []string {
 }
 
 func (s Service) FullEnv() map[string]string {
-	var env map[string]string
+	env := make(map[string]string)
 
 	for key, value := range s.Env {
 		env[key] = value
