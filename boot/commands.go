@@ -126,57 +126,67 @@ func Boot(bootState *State) {
 	global.Machine.Transition(global.Booted, nil)
 }
 
-func Run(bootState *State, wait string, index int) int {
-	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
-		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
-	}
-
+func GetState(wait string, index int) *directory.State {
 	directoryStateUrl := directory.StateURL{Wait: wait}
 
 	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
-		return 0
+		return nil
+	}
+
+	return directoryState
+}
+
+func Run(bootState *State, directoryState *directory.State) {
+	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
+		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}
 
 	desiredState, err := MergeStates(bootState, directoryState)
 
 	if err != nil {
 		global.Machine.Transition(global.MergingStateFailed, err)
-		return 0
+		return
 	}
 
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingNodeStateFailed, err)
-		return 0
+		return
 	}
 
 	err = Normalize(desiredState, currentNodeState)
 
 	if err != nil {
 		global.Machine.Transition(global.NormalizingFailed, err)
-		return 0
+		return
 	}
 
 	if !global.Machine.IsCurrently(global.Running) {
 		global.Machine.Transition(global.Running, nil)
 	}
-
-	return directoryState.Index // for next iteration
 }
 
 func Once(bootState *State) {
-	Run(bootState, "5s", 0)
+	directoryState := GetState("0s", 0)
+	Run(bootState, directoryState)
 }
 
 func Loop(bootState *State, wait string) {
 	index := 0
 
 	for {
-		index = Run(bootState, wait, index)
-		time.Sleep(time.Second)
+		directoryState := GetState(wait, index)
+		Run(bootState, directoryState)
+
+		if global.Machine.IsCurrently(global.Running) {
+			index = directoryState.Index
+			time.Sleep(time.Second)
+		} else {
+			time.Sleep(6 * time.Second)
+		}
 	}
 }
