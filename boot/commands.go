@@ -35,6 +35,8 @@ func Boot(state *State) {
 		return
 	}
 
+	// TODO: post metadata to directory
+
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
