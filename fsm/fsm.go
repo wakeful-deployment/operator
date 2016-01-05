@@ -31,6 +31,10 @@ func (m Machine) Transition(to State, e error) {
 	}
 }
 
+func (m Machine) IsCurrently(s State) bool {
+	return m.CurrentState.Equal(s)
+}
+
 type State struct {
 	Name  string
 	Error error

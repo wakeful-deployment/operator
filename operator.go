@@ -28,7 +28,7 @@ func main() {
 
 	state := boot.LoadBootStateFromFile(*configPath)
 
-	if global.Machine.CurrentState.Equal(global.ConfigFailed) {
+	if global.Machine.IsCurrently(global.ConfigFailed) {
 		if *shouldLoop {
 			for { // loop forever
 			}
@@ -40,7 +40,7 @@ func main() {
 	for {
 		boot.Boot(state)
 
-		if global.Machine.CurrentState.Equal(global.Booted) {
+		if global.Machine.IsCurrently(global.Booted) {
 			break
 		}
 

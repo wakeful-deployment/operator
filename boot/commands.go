@@ -53,7 +53,7 @@ func Boot(state *State) {
 }
 
 func Run(bootState *State, wait string) {
-	if global.Machine.CurrentState.NotEqual(global.Running) && global.Machine.CurrentState.NotEqual(global.Booted) {
+	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
 		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}
 
