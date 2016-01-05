@@ -41,21 +41,19 @@ var states = []fsm.State{
 	Running,
 }
 
-var Failures = []fsm.State{ConsulFailed, FetchingNodeStateFailed, NormalizingFailed}
-
 var AllowedTransitions = fsm.Rules{
 	fsm.From(Initial).To(Booting, ConfigFailed),
 	fsm.From(ConfigFailed).To(),
-	fsm.From(Booting).To(append(Failures, Booted)...),
+	fsm.From(Booting).To(ConsulFailed, PostingMetadataFailed, FetchingNodeStateFailed, NormalizingFailed, Booted),
 	fsm.From(PostingMetadataFailed).To(Booting),
 	fsm.From(ConsulFailed).To(Booting, AttemptingToRecover),
-	fsm.From(Booted).To(append(Failures, Running)...),
+	fsm.From(Booted).To(ConsulFailed, FetchingNodeStateFailed, NormalizingFailed, Running),
 	fsm.From(FetchingNodeStateFailed).To(Booting, AttemptingToRecover),
 	fsm.From(MergingStateFailed).To(Booting, AttemptingToRecover),
 	fsm.From(NormalizingFailed).To(Booting, AttemptingToRecover),
 	fsm.From(FetchingDirectoryStateFailed).To(Booting, AttemptingToRecover),
-	fsm.From(AttemptingToRecover).To(append(Failures, Running)...),
-	fsm.From(Running).To(append(Failures, Running)...),
+	fsm.From(AttemptingToRecover).To(ConsulFailed, FetchingNodeStateFailed, NormalizingFailed, Running),
+	fsm.From(Running).To(ConsulFailed, FetchingNodeStateFailed, NormalizingFailed, Running),
 }
 
 var Machine = fsm.Machine{CurrentState: Initial, Rules: AllowedTransitions, States: states}
