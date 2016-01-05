@@ -17,6 +17,14 @@ func runServer() {
 		io.WriteString(w, fmt.Sprintf("%v", global.Machine.CurrentState))
 	})
 
+	http.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
+		if global.Machine.IsCurrently(global.Running) {
+			w.WriteHeader(http.StatusNoContent)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+	})
+
 	http.ListenAndServe(":8000", nil)
 }
 
