@@ -3,7 +3,7 @@ package boot
 import (
 	"errors"
 	"fmt"
-	// "github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
@@ -103,11 +103,11 @@ func Boot(bootState *State) {
 		return
 	}
 
-	// err = consul.PostMetadata(bootState.MetaData)
-	// if err != nil {
-	// 	global.Machine.Transition(global.PostingMetadataFailed, err)
-	// 	return
-	// }
+	err = consul.PostMetadata(bootState.MetaData)
+	if err != nil {
+		global.Machine.Transition(global.PostingMetadataFailed, err)
+		return
+	}
 
 	currentNodeState, err := node.CurrentState()
 
