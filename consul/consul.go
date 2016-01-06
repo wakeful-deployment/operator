@@ -116,15 +116,21 @@ func MetadataURL(key string) string {
 
 func PostMetadata(metadata map[string]string) error {
 	for key, value := range metadata {
-		reader := strings.NewReader(value)
-		resp, err := http.Post(MetadataURL(key), "application/json", reader)
+		client := &http.Client{}
+		request, err := http.NewRequest("PUT", MetadataURL(key), strings.NewReader(value))
+
+		if err != nil {
+			return err
+		}
+
+		resp, err := client.Do(request)
 
 		if err != nil {
 			return err
 		}
 
 		if resp.StatusCode != 200 {
-			return errors.New(fmt.Sprintf("Metadata failed to POST: k=%s v=%s", key, value))
+			return errors.New(fmt.Sprintf("Metadata request return non-200 response: %d", resp.StatusCode))
 		}
 	}
 
