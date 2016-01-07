@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/wakeful-deployment/operator/directory"
+	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/service"
 	"io/ioutil"
 )
@@ -38,7 +38,7 @@ func ReadStateFromConfigFile(path string) (*State, error) {
 	return state, nil
 }
 
-func MergeStates(bootState *State, directoryState *directory.State) (*State, error) {
+func MergeStates(bootState *State, directoryState *consul.DirectoryState) (*State, error) {
 	newState := &State{}
 	*newState = *bootState // clone
 

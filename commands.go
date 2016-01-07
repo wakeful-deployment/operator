@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/container"
-	"github.com/wakeful-deployment/operator/directory"
 	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/logger"
@@ -90,7 +89,7 @@ func Boot(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 }
 
 func Once(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
-	directoryState := getState(bootState.NodeName, "0s", 0)
+	directoryState := getState(consulClient, bootState.NodeName, 0, "0s")
 	tick(dockerClient, consulClient, bootState, directoryState)
 }
 
@@ -98,7 +97,7 @@ func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	index := 0
 
 	for {
-		directoryState := getState(bootState.NodeName, bootState.Wait, index)
+		directoryState := getState(consulClient, bootState.NodeName, index, bootState.Wait)
 		tick(dockerClient, consulClient, bootState, directoryState)
 
 		if global.Machine.IsCurrently(global.Running) {
@@ -119,7 +118,7 @@ func normalize(dockerClient docker.Client, consulClient consul.Client, desiredSt
 	var desiredContainers []container.Container
 
 	for _, service := range desiredState.Services {
-		desiredContainers = append(desiredContainers, service.Container(desiredState.NodeName))
+		desiredContainers = append(desiredContainers, service.Container(desiredState.NodeName, consulClient.ConsulHost()))
 	}
 
 	err := docker.NormalizeContainers(dockerClient, desiredContainers, currentNodeState.Containers)
@@ -145,11 +144,9 @@ func normalize(dockerClient docker.Client, consulClient consul.Client, desiredSt
 	return nil
 }
 
-func getState(nodeName string, wait string, index int) *directory.State {
-	directoryStateUrl := directory.StateURL{Wait: wait, Index: index}
-
-	logger.Info(fmt.Sprintf("getting directory state with url: %s", directoryStateUrl.String(nodeName)))
-	directoryState, err := directory.GetState(directoryStateUrl.String(nodeName)) // this will block for some time
+func getState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
+	logger.Info("getting directory state...")
+	directoryState, err := consulClient.GetDirectoryState(nodeName, index, wait) // this will block for some time
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
@@ -161,7 +158,7 @@ func getState(nodeName string, wait string, index int) *directory.State {
 	return directoryState
 }
 
-func tick(dockerClient docker.Client, consulClient consul.Client, bootState *State, directoryState *directory.State) {
+func tick(dockerClient docker.Client, consulClient consul.Client, bootState *State, directoryState *consul.DirectoryState) {
 	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
 		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}
@@ -239,7 +236,7 @@ func detectOrBootConsul(dockerClient docker.Client, consulClient consul.Client, 
 		return errors.New("consul is not running. It is also not listed as a service, so cannot attempt to boot it")
 	}
 
-	consulContainer := consulService.Container(state.NodeName)
+	consulContainer := consulService.Container(state.NodeName, consulClient.ConsulHost())
 	err = dockerClient.Run(consulContainer)
 
 	if err != nil {

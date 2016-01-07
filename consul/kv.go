@@ -1,4 +1,4 @@
-package directory
+package consul
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ func (kv KV) DecodedValue() []byte {
 	return decoded
 }
 
-func DecodeService(kv KV) (service.Service, error) {
+func (kv KV) DecodeService() (service.Service, error) {
 	service := service.Service{}
 	b := kv.DecodedValue()
 	reader := bytes.NewReader(b)

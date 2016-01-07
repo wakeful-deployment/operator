@@ -79,15 +79,16 @@ func main() {
 		state.Wait = "5m"
 	}
 
-	// globals
+	// global
 
-	global.Info.Consulhost = state.ConsulHost
 	global.Config.Verbose = *verbose
 
-	dockerClient := docker.EngineClient{}
-	consulClient := consul.HttpClient{}
+	// dependencies
 
-	logger.Info(fmt.Sprintf("global info set to: %v", global.Info))
+	dockerClient := docker.EngineClient{}
+	consulClient := consul.HttpClient{Host: state.ConsulHost}
+
+	logger.Info("ready to go...")
 
 	Run(dockerClient, consulClient, state)
 }

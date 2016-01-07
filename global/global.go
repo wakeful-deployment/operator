@@ -4,15 +4,9 @@ import (
 	"github.com/wakeful-deployment/operator/fsm"
 )
 
-type GlobalInfo struct {
-	Consulhost string
-}
-
 type GlobalConfig struct {
 	Verbose bool
 }
-
-type GlobalMetadata map[string]string
 
 var (
 	Initial                      = fsm.State{Name: "Initial"}
@@ -61,6 +55,4 @@ var AllowedTransitions = fsm.Rules{
 
 var Machine = fsm.Machine{CurrentState: Initial, Rules: AllowedTransitions, States: states}
 
-var Info = GlobalInfo{}
-var Metadata = GlobalMetadata{}
 var Config = GlobalConfig{}
