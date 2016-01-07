@@ -14,9 +14,9 @@ import (
 )
 
 type Client interface {
+	RegisteredServices() (string, error)
 	Register(service.Service) error
 	Deregister(service.Service) error
-	RegisteredServices() (string, error)
 	PostMetadata(string, map[string]string) error
 	Detect() error
 	GetDirectoryState(string, int, string) (*DirectoryState, error)
