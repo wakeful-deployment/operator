@@ -12,14 +12,14 @@ type State struct {
 	Services   []service.Service
 }
 
-func CurrentState() (*State, error) {
-	containers, err := docker.RunningContainers()
+func CurrentState(dockerClient docker.Client, consulClient consul.Client) (*State, error) {
+	containers, err := docker.RunningContainers(dockerClient)
 
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := consul.RegisteredServices()
+	services, err := consul.RegisteredServices(consulClient)
 
 	if err != nil {
 		return nil, err

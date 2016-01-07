@@ -40,7 +40,7 @@ func detectConsul() error {
 	return errors.New("consul is not responding on port 8500")
 }
 
-func detectOrBootConsul(state *State) error {
+func detectOrBootConsul(dockerClient docker.Client, state *State) error {
 	err := detectConsul()
 
 	if err == nil {
@@ -50,7 +50,7 @@ func detectOrBootConsul(state *State) error {
 
 	logger.Error(fmt.Sprintf("detecting consul failed with error: %v. Let's check docker to see if it's running", err))
 
-	containers, err := docker.RunningContainers()
+	containers, err := docker.RunningContainers(dockerClient)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("detecting docker failed also with error: %v.", err))
@@ -80,7 +80,7 @@ func detectOrBootConsul(state *State) error {
 	}
 
 	consulContainer := consulService.Container(state.NodeName)
-	err = docker.Run(consulContainer)
+	err = dockerClient.Run(consulContainer)
 
 	if err != nil {
 		logger.Error(fmt.Sprintf("attemping to run consul with docker failed with error: %v", err))
@@ -102,14 +102,14 @@ func LoadBootStateFromFile(path string) *State {
 	return state
 }
 
-func Boot(bootState *State) {
+func Boot(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
 	if !global.Machine.IsCurrently(global.Booting) {
 		logger.Info("booting up...")
 		global.Machine.Transition(global.Booting, nil)
 	}
 
 	logger.Info("checking status of consul...")
-	err := detectOrBootConsul(bootState)
+	err := detectOrBootConsul(dockerClient, bootState)
 
 	if err != nil {
 		global.Machine.Transition(global.ConsulFailed, err)
@@ -118,7 +118,7 @@ func Boot(bootState *State) {
 	}
 
 	logger.Info(fmt.Sprintf("posting metadata to consul. Metadata = %v", bootState.Metadata))
-	err = consul.PostMetadata(bootState.NodeName, bootState.Metadata)
+	err = consulClient.PostMetadata(bootState.NodeName, bootState.Metadata)
 
 	if err != nil {
 		global.Machine.Transition(global.PostingMetadataFailed, err)
@@ -127,7 +127,7 @@ func Boot(bootState *State) {
 	}
 
 	logger.Info("getting current node state")
-	currentNodeState, err := node.CurrentState()
+	currentNodeState, err := node.CurrentState(dockerClient, consulClient)
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingNodeStateFailed, err)
@@ -136,7 +136,7 @@ func Boot(bootState *State) {
 	}
 
 	logger.Info(fmt.Sprintf("normalizing states - bootState=%v and currentNodeState=%v", bootState, currentNodeState))
-	err = Normalize(bootState, currentNodeState)
+	err = Normalize(dockerClient, consulClient, bootState, currentNodeState)
 
 	if err != nil {
 		global.Machine.Transition(global.NormalizingFailed, err)
@@ -164,7 +164,7 @@ func GetState(nodeName string, wait string, index int) *directory.State {
 	return directoryState
 }
 
-func Run(bootState *State, directoryState *directory.State) {
+func Run(dockerClient docker.Client, consulClient consul.Client, bootState *State, directoryState *directory.State) {
 	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
 		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}
@@ -179,7 +179,7 @@ func Run(bootState *State, directoryState *directory.State) {
 	}
 
 	logger.Info("getting current node state")
-	currentNodeState, err := node.CurrentState()
+	currentNodeState, err := node.CurrentState(dockerClient, consulClient)
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingNodeStateFailed, err)
@@ -188,7 +188,7 @@ func Run(bootState *State, directoryState *directory.State) {
 	}
 
 	logger.Info(fmt.Sprintf("normalizing states - desiredState=%v and currentNodeState=%v", desiredState, currentNodeState))
-	err = Normalize(desiredState, currentNodeState)
+	err = Normalize(dockerClient, consulClient, desiredState, currentNodeState)
 
 	if err != nil {
 		global.Machine.Transition(global.NormalizingFailed, err)
@@ -201,17 +201,17 @@ func Run(bootState *State, directoryState *directory.State) {
 	}
 }
 
-func Once(bootState *State) {
+func Once(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
 	directoryState := GetState(bootState.NodeName, "0s", 0)
-	Run(bootState, directoryState)
+	Run(dockerClient, consulClient, bootState, directoryState)
 }
 
-func Loop(bootState *State, wait string) {
+func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *State, wait string) {
 	index := 0
 
 	for {
 		directoryState := GetState(bootState.NodeName, wait, index)
-		Run(bootState, directoryState)
+		Run(dockerClient, consulClient, bootState, directoryState)
 
 		if global.Machine.IsCurrently(global.Running) {
 			logger.Info(fmt.Sprintf("iteration complete - setting index to %d and then sleeping", directoryState.Index))

@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/wakeful-deployment/operator/boot"
+	"github.com/wakeful-deployment/operator/consul"
+	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/logger"
 	"io"
@@ -100,12 +102,15 @@ func main() {
 	global.Info.Consulhost = state.ConsulHost
 	global.Config.Verbose = *verbose
 
+	dockerClient := docker.EngineClient{}
+	consulClient := consul.HttpClient{}
+
 	logger.Info(fmt.Sprintf("global info set to: %v", global.Info))
 
 	// boot
 
 	for {
-		boot.Boot(state)
+		boot.Boot(dockerClient, consulClient, state)
 
 		if global.Machine.IsCurrently(global.Booted) {
 			break
@@ -117,8 +122,8 @@ func main() {
 	// run
 
 	if *shouldLoop {
-		boot.Loop(state, *wait)
+		boot.Loop(dockerClient, consulClient, state, *wait)
 	} else {
-		boot.Once(state)
+		boot.Once(dockerClient, consulClient, state)
 	}
 }
