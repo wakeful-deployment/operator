@@ -9,7 +9,7 @@ import (
 )
 
 type State struct {
-	MetaData   map[string]string          `json:"metadata"`
+	Metadata   map[string]string          `json:"metadata"`
 	Services   map[string]service.Service `json:"services"`
 	Nodename   string                     `json:"node"`
 	ConsulHost string                     `json:"consul"`

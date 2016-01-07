@@ -85,7 +85,7 @@ func main() {
 		if jsonErr != nil {
 			fmt.Println("-metadata was not valid json, skipping")
 		} else {
-			state.MetaData = m
+			state.Metadata = m
 		}
 	}
 

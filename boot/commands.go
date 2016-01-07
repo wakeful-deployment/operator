@@ -108,6 +108,7 @@ func Boot(bootState *State) {
 		global.Machine.Transition(global.Booting, nil)
 	}
 
+	logger.Info("checking status of consul...")
 	err := detectOrBootConsul(bootState)
 
 	if err != nil {
@@ -116,13 +117,16 @@ func Boot(bootState *State) {
 		return
 	}
 
-	err = consul.PostMetadata(bootState.MetaData)
+	logger.Info(fmt.Sprintf("posting metadata to consul. Metadata = %v", bootState.Metadata))
+	err = consul.PostMetadata(bootState.Metadata)
+
 	if err != nil {
 		global.Machine.Transition(global.PostingMetadataFailed, err)
 		logger.Error(fmt.Sprintf("posting metadata failed with error: %v", err))
 		return
 	}
 
+	logger.Info("getting current node state")
 	currentNodeState, err := node.CurrentState()
 
 	if err != nil {
@@ -131,6 +135,7 @@ func Boot(bootState *State) {
 		return
 	}
 
+	logger.Info(fmt.Sprintf("normalizing states - bootState=%v and currentNodeState=%v", bootState, currentNodeState))
 	err = Normalize(bootState, currentNodeState)
 
 	if err != nil {
@@ -146,7 +151,7 @@ func Boot(bootState *State) {
 func GetState(wait string, index int) *directory.State {
 	directoryStateUrl := directory.StateURL{Wait: wait, Index: index}
 
-	logger.Info(fmt.Sprintf("getting directory state with url: %s", directoryStateUrl))
+	logger.Info(fmt.Sprintf("getting directory state with url: %s", directoryStateUrl.String()))
 	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
 
 	if err != nil {
