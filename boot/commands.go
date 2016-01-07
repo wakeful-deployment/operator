@@ -127,7 +127,7 @@ func Boot(bootState *State) {
 }
 
 func GetState(wait string, index int) *directory.State {
-	directoryStateUrl := directory.StateURL{Wait: wait}
+	directoryStateUrl := directory.StateURL{Wait: wait, Index: index}
 
 	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
 
