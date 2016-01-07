@@ -31,7 +31,7 @@ func runServer() {
 
 func main() {
 	var (
-		nodename   = flag.String("node", "", "The name of the host which is running operator")
+		nodeName   = flag.String("node", "", "The name of the host which is running operator")
 		consulHost = flag.String("consul", "", "The name or ip of the consul host")
 		configPath = flag.String("config", "./operator.json", "The path to the operator.json (default is .)")
 		shouldLoop = flag.Bool("loop", false, "Run on each change to the consul key/value storage")
@@ -57,8 +57,8 @@ func main() {
 
 	// proceed with configuration
 
-	if *nodename != "" {
-		state.Nodename = *nodename
+	if *nodeName != "" {
+		state.NodeName = *nodeName
 	}
 
 	if *consulHost != "" {
@@ -67,7 +67,7 @@ func main() {
 
 	// required flags
 
-	if state.Nodename == "" || state.ConsulHost == "" {
+	if state.NodeName == "" || state.ConsulHost == "" {
 		panic("ERROR: Must provide -node and -consul flags")
 	}
 
@@ -97,7 +97,6 @@ func main() {
 
 	// globals
 
-	global.Info.Nodename = state.Nodename
 	global.Info.Consulhost = state.ConsulHost
 	global.Config.Verbose = *verbose
 

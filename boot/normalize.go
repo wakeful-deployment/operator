@@ -16,7 +16,7 @@ func Normalize(desiredState *State, currentNodeState *node.State) error {
 	var desiredContainers []container.Container
 
 	for _, service := range desiredState.Services {
-		desiredContainers = append(desiredContainers, service.Container())
+		desiredContainers = append(desiredContainers, service.Container(desiredState.NodeName))
 	}
 
 	err := docker.NormalizeContainers(desiredContainers, currentNodeState.Containers)

@@ -39,7 +39,7 @@ func TestFullEnv(t *testing.T) {
 		},
 	}
 
-	env := s.FullEnv()
+	env := s.FullEnv("thenodename")
 
 	expectedKeys := []string{
 		"FOO",
@@ -87,7 +87,7 @@ func TestContainer(t *testing.T) {
 	expectedName := "redis"
 	expectedImage := "redis"
 
-	c := s.Container()
+	c := s.Container("thenodename")
 
 	if c.Name != expectedName {
 		t.Errorf("expected Name to be %s, but was %s", expectedName, c.Name)

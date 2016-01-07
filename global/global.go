@@ -5,7 +5,6 @@ import (
 )
 
 type GlobalInfo struct {
-	Nodename   string
 	Consulhost string
 }
 

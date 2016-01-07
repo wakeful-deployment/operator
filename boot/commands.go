@@ -79,7 +79,7 @@ func detectOrBootConsul(state *State) error {
 		return errors.New("consul is not running. It is also not listed as a service, so cannot attempt to boot it")
 	}
 
-	consulContainer := consulService.Container()
+	consulContainer := consulService.Container(state.NodeName)
 	err = docker.Run(consulContainer)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func Boot(bootState *State) {
 	}
 
 	logger.Info(fmt.Sprintf("posting metadata to consul. Metadata = %v", bootState.Metadata))
-	err = consul.PostMetadata(bootState.Metadata)
+	err = consul.PostMetadata(bootState.NodeName, bootState.Metadata)
 
 	if err != nil {
 		global.Machine.Transition(global.PostingMetadataFailed, err)
@@ -148,11 +148,11 @@ func Boot(bootState *State) {
 	logger.Info("booted!")
 }
 
-func GetState(wait string, index int) *directory.State {
+func GetState(nodeName string, wait string, index int) *directory.State {
 	directoryStateUrl := directory.StateURL{Wait: wait, Index: index}
 
-	logger.Info(fmt.Sprintf("getting directory state with url: %s", directoryStateUrl.String()))
-	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
+	logger.Info(fmt.Sprintf("getting directory state with url: %s", directoryStateUrl.String(nodeName)))
+	directoryState, err := directory.GetState(directoryStateUrl.String(nodeName)) // this will block for some time
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
@@ -202,7 +202,7 @@ func Run(bootState *State, directoryState *directory.State) {
 }
 
 func Once(bootState *State) {
-	directoryState := GetState("0s", 0)
+	directoryState := GetState(bootState.NodeName, "0s", 0)
 	Run(bootState, directoryState)
 }
 
@@ -210,7 +210,7 @@ func Loop(bootState *State, wait string) {
 	index := 0
 
 	for {
-		directoryState := GetState(wait, index)
+		directoryState := GetState(bootState.NodeName, wait, index)
 		Run(bootState, directoryState)
 
 		if global.Machine.IsCurrently(global.Running) {

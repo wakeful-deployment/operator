@@ -110,14 +110,14 @@ func NormalizeServices(desired []service.Service, current []service.Service) err
 	return nil
 }
 
-func MetadataURL(key string) string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/metadata/%s", global.Info.Consulhost, global.Info.Nodename, key)
+func MetadataURL(key string, nodeName string) string {
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/metadata/%s", global.Info.Consulhost, nodeName, key)
 }
 
-func PostMetadata(metadata map[string]string) error {
+func PostMetadata(nodeName string, metadata map[string]string) error {
 	for key, value := range metadata {
 		client := &http.Client{}
-		request, err := http.NewRequest("PUT", MetadataURL(key), strings.NewReader(value))
+		request, err := http.NewRequest("PUT", MetadataURL(key, nodeName), strings.NewReader(value))
 
 		if err != nil {
 			return err

@@ -15,8 +15,8 @@ type StateURL struct {
 	Wait  string
 }
 
-func (c *StateURL) String() string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", global.Info.Consulhost, global.Info.Nodename, c.Index, c.Wait)
+func (c *StateURL) String(nodeName string) string {
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", global.Info.Consulhost, nodeName, c.Index, c.Wait)
 }
 
 type State struct {

@@ -65,7 +65,7 @@ func (s Service) SimplePorts() []string {
 	return ports
 }
 
-func (s Service) FullEnv() map[string]string {
+func (s Service) FullEnv(nodeName string) map[string]string {
 	env := make(map[string]string)
 
 	for key, value := range s.Env {
@@ -73,18 +73,18 @@ func (s Service) FullEnv() map[string]string {
 	}
 
 	env["SERVICENAME"] = s.Name
-	env["NODE"] = global.Info.Nodename
+	env["NODE"] = nodeName
 	env["CONSULHOST"] = global.Info.Consulhost
 
 	return env
 }
 
-func (s Service) Container() container.Container {
+func (s Service) Container(nodeName string) container.Container {
 	return container.Container{
 		Name:    s.Name,
 		Image:   s.Image,
 		Ports:   s.SimplePorts(),
-		Env:     s.FullEnv(),
+		Env:     s.FullEnv(nodeName),
 		Restart: s.Restart,
 		Tags:    s.Tags,
 	}
