@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Client interface {
@@ -17,6 +18,7 @@ type Client interface {
 	Deregister(service.Service) error
 	RegisteredServices() (string, error)
 	PostMetadata(string, map[string]string) error
+	Detect() error
 }
 
 type HttpClient struct{}
@@ -105,9 +107,32 @@ func (h HttpClient) PostMetadata(nodeName string, metadata map[string]string) er
 	return nil
 }
 
+const consulCheckTimeout = 5 * time.Second
+
+func (h HttpClient) Detect() error {
+	url := consulCheckUrl()
+
+	client := http.Client{Timeout: consulCheckTimeout}
+	resp, err := client.Get(url)
+
+	if err == nil && resp.StatusCode == 200 {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return errors.New(fmt.Sprintf("consul check failed with non-200 response: %d", resp.StatusCode))
+}
+
 type ServiceRepresentation struct {
 	Name    string
 	Address string
+}
+
+func consulCheckUrl() string {
+	return fmt.Sprintf("http://%s:8500/", global.Info.Consulhost)
 }
 
 func ServicesURL() string {

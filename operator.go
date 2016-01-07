@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/wakeful-deployment/operator/boot"
 	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
@@ -12,24 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
-
-func runServer() {
-	http.HandleFunc("/api/state", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, fmt.Sprintf("%v", global.Machine.CurrentState))
-	})
-
-	http.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
-		if global.Machine.IsCurrently(global.Running) {
-			w.WriteHeader(http.StatusNoContent)
-		} else {
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}
-	})
-
-	http.ListenAndServe(":8000", nil)
-}
 
 func main() {
 	var (
@@ -43,7 +25,7 @@ func main() {
 	)
 	flag.Parse()
 
-	state := boot.LoadBootStateFromFile(*configPath)
+	state := LoadBootStateFromFile(*configPath)
 
 	go runServer()
 
@@ -107,23 +89,21 @@ func main() {
 
 	logger.Info(fmt.Sprintf("global info set to: %v", global.Info))
 
-	// boot
+	Run(dockerClient, consulClient, state)
+}
 
-	for {
-		boot.Boot(dockerClient, consulClient, state)
+func runServer() {
+	http.HandleFunc("/api/state", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, fmt.Sprintf("%v", global.Machine.CurrentState))
+	})
 
-		if global.Machine.IsCurrently(global.Booted) {
-			break
+	http.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
+		if global.Machine.IsCurrently(global.Running) {
+			w.WriteHeader(http.StatusNoContent)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
 		}
+	})
 
-		time.Sleep(6 * time.Second)
-	}
-
-	// run
-
-	if *shouldLoop {
-		boot.Loop(dockerClient, consulClient, state, *wait)
-	} else {
-		boot.Once(dockerClient, consulClient, state)
-	}
+	http.ListenAndServe(":8000", nil)
 }
