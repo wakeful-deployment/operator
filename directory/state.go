@@ -16,6 +16,7 @@ type StateURL struct {
 }
 
 func (c *StateURL) String() string {
+	fmt.Printf("INFO: forming the url with host: %s, nodename: %s, index: %d, and wait: %s\n", global.Info.Consulhost, global.Info.Nodename, c.Index, c.Wait)
 	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", global.Info.Consulhost, global.Info.Nodename, c.Index, c.Wait)
 }
 

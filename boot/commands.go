@@ -130,7 +130,6 @@ func GetState(wait string, index int) *directory.State {
 	directoryStateUrl := directory.StateURL{Wait: wait}
 
 	directoryState, err := directory.GetState(directoryStateUrl.String()) // this will block for some time
-	fmt.Printf("INFO: The index: %d", directoryState.Index)
 
 	if err != nil {
 		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
