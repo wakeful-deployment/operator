@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/wakeful-deployment/operator/boot"
 	"github.com/wakeful-deployment/operator/global"
+	"github.com/wakeful-deployment/operator/logger"
 	"io"
 	"net/http"
 	"strings"
@@ -36,6 +37,7 @@ func main() {
 		shouldLoop = flag.Bool("loop", false, "Run on each change to the consul key/value storage")
 		wait       = flag.String("wait", "", "The timeout for polling")
 		metadata   = flag.String("metadata", "", "JSON metadata to add to the directory for this node")
+		verbose    = flag.Bool("verbose", false, "Log more info for easier debugging")
 	)
 	flag.Parse()
 
@@ -97,12 +99,11 @@ func main() {
 
 	global.Info.Nodename = state.Nodename
 	global.Info.Consulhost = state.ConsulHost
+	global.Config.Verbose = *verbose
 
-	fmt.Println(fmt.Sprintf("info: %v", global.Info))
+	logger.Info(fmt.Sprintf("global info set to: %v", global.Info))
 
 	// boot
-
-	fmt.Println(fmt.Sprintf("booting: %v", state))
 
 	for {
 		boot.Boot(state)

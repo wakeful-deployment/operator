@@ -9,6 +9,10 @@ type GlobalInfo struct {
 	Consulhost string
 }
 
+type GlobalConfig struct {
+	Verbose bool
+}
+
 type GlobalMetadata map[string]string
 
 var (
@@ -60,3 +64,4 @@ var Machine = fsm.Machine{CurrentState: Initial, Rules: AllowedTransitions, Stat
 
 var Info = GlobalInfo{}
 var Metadata = GlobalMetadata{}
+var Config = GlobalConfig{}
