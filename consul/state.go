@@ -9,8 +9,8 @@ type DirectoryState struct {
 	KVs   []KV
 }
 
-func (s DirectoryState) Services() ([]service.Service, error) {
-	var services []service.Service
+func (s DirectoryState) Services() ([]*service.Service, error) {
+	var services []*service.Service
 
 	for _, kv := range s.KVs {
 		service, err := kv.DecodeService()

@@ -4,10 +4,6 @@ import (
 	"github.com/wakeful-deployment/operator/fsm"
 )
 
-type GlobalConfig struct {
-	Verbose bool
-}
-
 var (
 	Initial                      = fsm.State{Name: "Initial"}
 	ConfigFailed                 = fsm.State{Name: "ConfigFailed"}
@@ -54,5 +50,3 @@ var AllowedTransitions = fsm.Rules{
 }
 
 var Machine = fsm.Machine{CurrentState: Initial, Rules: AllowedTransitions, States: states}
-
-var Config = GlobalConfig{}

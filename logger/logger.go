@@ -2,8 +2,9 @@ package logger
 
 import (
 	"fmt"
-	"github.com/wakeful-deployment/operator/global"
 )
+
+var Verbose bool
 
 func Info(content string) {
 	Log("INFO: ", content)
@@ -14,7 +15,7 @@ func Error(content string) {
 }
 
 func Log(prefix string, content string) {
-	if global.Config.Verbose {
+	if Verbose {
 		fmt.Println(fmt.Sprintf("%s%s", prefix, content))
 	}
 }

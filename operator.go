@@ -79,9 +79,7 @@ func main() {
 		state.Wait = "5m"
 	}
 
-	// global
-
-	global.Config.Verbose = *verbose
+	logger.Verbose = *verbose
 
 	// dependencies
 

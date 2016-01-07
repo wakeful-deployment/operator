@@ -39,6 +39,10 @@ func LoadBootStateFromFile(path string) *State {
 		return nil
 	}
 
+	for name, s := range state.Services {
+		s.Name = name
+	}
+
 	return state
 }
 
@@ -132,7 +136,7 @@ func normalize(dockerClient docker.Client, consulClient consul.Client, desiredSt
 	var desiredServices []service.Service
 
 	for _, s := range desiredState.Services {
-		desiredServices = append(desiredServices, s)
+		desiredServices = append(desiredServices, *s)
 	}
 
 	err = consul.NormalizeServices(consulClient, desiredServices, currentNodeState.Services)

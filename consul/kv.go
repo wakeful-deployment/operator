@@ -25,14 +25,14 @@ func (kv KV) DecodedValue() []byte {
 	return decoded
 }
 
-func (kv KV) DecodeService() (service.Service, error) {
-	service := service.Service{}
+func (kv KV) DecodeService() (*service.Service, error) {
+	service := &service.Service{}
 	b := kv.DecodedValue()
 	reader := bytes.NewReader(b)
 	err := json.NewDecoder(reader).Decode(&service)
 
 	if err != nil {
-		return service, err
+		return nil, err
 	}
 
 	service.Name = kv.Name()

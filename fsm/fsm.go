@@ -10,6 +10,12 @@ type Machine struct {
 	States       []State
 }
 
+func (m *Machine) ForceTransition(to State, e error) {
+	to.Error = e
+	fmt.Println(fmt.Sprintf("Force transitioned from %v to %v", m.CurrentState, to))
+	m.CurrentState = to
+}
+
 func (m *Machine) Transition(to State, e error) {
 	stateIsPresent := false
 	for _, s := range m.States {
