@@ -37,7 +37,9 @@ func NormalizeContainers(client Client, desired []container.Container, current [
 	}
 
 	for _, container := range removed {
+		fmt.Println("Should remove container")
 		err := client.Stop(container)
+		fmt.Println("Stop was successful")
 		if err != nil {
 			errs = append(errs, err)
 		}

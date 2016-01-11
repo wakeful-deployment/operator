@@ -29,11 +29,11 @@ func erroredRunningContainers() (string, error) {
 
 func TestSuccessfulCurrentState(t *testing.T) {
 	dockerClient := test.DockerClient{
-		RunningContainersFunction: runningContainers,
+		RunningContainersResponse: runningContainers,
 	}
 
 	consulClient := test.ConsulClient{
-		RegisteredServicesFunction: registeredServices,
+		RegisteredServicesResponse: registeredServices,
 	}
 
 	state, err := CurrentState(dockerClient, consulClient)
@@ -55,11 +55,11 @@ func TestSuccessfulCurrentState(t *testing.T) {
 
 func TestConsulErrorCurrentState(t *testing.T) {
 	dockerClient := test.DockerClient{
-		RunningContainersFunction: runningContainers,
+		RunningContainersResponse: runningContainers,
 	}
 
 	consulClient := test.ConsulClient{
-		RegisteredServicesFunction: erroredRegisteredServices,
+		RegisteredServicesResponse: erroredRegisteredServices,
 	}
 
 	_, err := CurrentState(dockerClient, consulClient)
@@ -71,11 +71,11 @@ func TestConsulErrorCurrentState(t *testing.T) {
 
 func TestDockerErrorCurrentState(t *testing.T) {
 	dockerClient := test.DockerClient{
-		RunningContainersFunction: erroredRunningContainers,
+		RunningContainersResponse: erroredRunningContainers,
 	}
 
 	consulClient := test.ConsulClient{
-		RegisteredServicesFunction: registeredServices,
+		RegisteredServicesResponse: registeredServices,
 	}
 
 	_, err := CurrentState(dockerClient, consulClient)

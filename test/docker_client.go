@@ -5,21 +5,21 @@ import (
 )
 
 type DockerClient struct {
-	RunResponse               error
-	StopResponse              error
-	RunningContainersFunction func() (string, error)
+	RunResponse               func(container.Container) error
+	StopResponse              func(container.Container) error
+	RunningContainersResponse func() (string, error)
 }
 
 func (d DockerClient) Run(c container.Container) error {
-	return d.RunResponse
+	return d.RunResponse(c)
 }
 
 func (d DockerClient) Stop(c container.Container) error {
-	return d.StopResponse
+	return d.StopResponse(c)
 }
 
 func (d DockerClient) RunningContainers() (string, error) {
-	result, err := d.RunningContainersFunction()
+	result, err := d.RunningContainersResponse()
 
 	if err != nil {
 		return "", err

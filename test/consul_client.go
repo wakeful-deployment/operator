@@ -6,17 +6,17 @@ import (
 )
 
 type ConsulClient struct {
-	RegisteredServicesFunction func() (string, error)
-	RegisterResponse           error
-	DeregisterResponse         error
-	PostMetadataResponse       error
-	DetectResponse             error
-	GetDirectoryStateFunction  func() (*consul.DirectoryState, error)
-	ConsulHostValue            string
+	RegisteredServicesResponse func() (string, error)
+	RegisterResponse           func(service.Service) error
+	DeregisterResponse         func(service.Service) error
+	PostMetadataResponse       func() error
+	DetectResponse             func() error
+	GetDirectoryStateResponse  func() (*consul.DirectoryState, error)
+	ConsulHostResponse         func() string
 }
 
 func (t ConsulClient) RegisteredServices() (string, error) {
-	result, err := t.RegisteredServicesFunction()
+	result, err := t.RegisteredServicesResponse()
 
 	if err != nil {
 		return "", err
@@ -26,23 +26,23 @@ func (t ConsulClient) RegisteredServices() (string, error) {
 }
 
 func (t ConsulClient) Register(s service.Service) error {
-	return t.RegisterResponse
+	return t.RegisterResponse(s)
 }
 
 func (t ConsulClient) Deregister(s service.Service) error {
-	return t.DeregisterResponse
+	return t.DeregisterResponse(s)
 }
 
 func (t ConsulClient) PostMetadata(nodeName string, data map[string]string) error {
-	return t.PostMetadataResponse
+	return t.PostMetadataResponse()
 }
 
 func (t ConsulClient) Detect() error {
-	return t.DetectResponse
+	return t.DetectResponse()
 }
 
 func (t ConsulClient) GetDirectoryState(nodeName string, index int, wait string) (*consul.DirectoryState, error) {
-	result, err := t.GetDirectoryStateFunction()
+	result, err := t.GetDirectoryStateResponse()
 
 	if err != nil {
 		return nil, err
@@ -52,5 +52,5 @@ func (t ConsulClient) GetDirectoryState(nodeName string, index int, wait string)
 }
 
 func (t ConsulClient) ConsulHost() string {
-	return t.ConsulHostValue
+	return t.ConsulHostResponse()
 }

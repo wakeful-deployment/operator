@@ -58,6 +58,12 @@ func parseResponse(body string) ([]service.Service, error) {
 	var serviceDescriptions map[string]service.Service
 	var services []service.Service
 
+	body = strings.Trim(body, "")
+
+	if body == "" {
+		return services, nil
+	}
+
 	reader := strings.NewReader(body)
 	err := json.NewDecoder(reader).Decode(&serviceDescriptions)
 
