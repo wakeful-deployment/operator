@@ -235,6 +235,11 @@ func detectOrBootConsul(dockerClient docker.Client, consulClient consul.Client, 
 
 	consulService := state.Services["consul"]
 
+	if consulService == nil {
+		logger.Error("need to boot consul, but consul is not one of the services specified in the desired state")
+		return errors.New("need to boot consul, but consul is not one of the services specified in the desired state")
+	}
+
 	if consulService.Name != "consul" {
 		logger.Error("could not even find consul as a service when trying to boot it up.")
 		return errors.New("consul is not running. It is also not listed as a service, so cannot attempt to boot it")

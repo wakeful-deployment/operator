@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/wakeful-deployment/operator/container"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/service"
@@ -106,21 +107,27 @@ func TestSuccessfulBootWithStartAndRegister(t *testing.T) {
 	global.Machine.ForceTransition(global.Initial, nil)
 	defer global.Machine.ForceTransition(global.Initial, nil)
 
-	timesStartCalled := 0
+	var startedContainers []string
 	dockerClient := test.DockerClient{
 		RunningContainersResponse: func() (string, error) { return "", nil },
-		RunResponse:               func(c container.Container) error { timesStartCalled += 1; return nil },
-		StopResponse:              func(c container.Container) error { return nil },
+		RunResponse: func(c container.Container) error {
+			startedContainers = append(startedContainers, c.Name)
+			return nil
+		},
+		StopResponse: func(c container.Container) error { return nil },
 	}
 
-	timesRegisterCalled := 0
+	var registeredServices []string
 	consulClient := test.ConsulClient{
 		RegisteredServicesResponse: func() (string, error) { return "", nil },
-		RegisterResponse:           func(s service.Service) error { timesRegisterCalled += 1; return nil },
-		DeregisterResponse:         func(s service.Service) error { return nil },
-		DetectResponse:             func() error { return nil },
-		PostMetadataResponse:       func() error { return nil },
-		ConsulHostResponse:         func() string { return "127.0.0.1" },
+		RegisterResponse: func(s service.Service) error {
+			registeredServices = append(registeredServices, s.Name)
+			return nil
+		},
+		DeregisterResponse:   func(s service.Service) error { return nil },
+		DetectResponse:       func() error { return nil },
+		PostMetadataResponse: func() error { return nil },
+		ConsulHostResponse:   func() string { return "127.0.0.1" },
 	}
 
 	state := &State{Services: map[string]*service.Service{"foo": &service.Service{}}}
@@ -128,15 +135,15 @@ func TestSuccessfulBootWithStartAndRegister(t *testing.T) {
 	Boot(dockerClient, consulClient, state)
 
 	if !global.Machine.IsCurrently(global.Booted) {
-		t.Errorf("Expected machine to be %s but was %v", global.ConfigFailed, global.Machine.CurrentState)
+		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
 	}
 
-	if timesStartCalled != 1 {
-		t.Errorf("Expected docker stop to be called %d times but was called %d times", 1, timesStartCalled)
+	if len(startedContainers) != 1 {
+		t.Errorf("Expected docker stop to be called %d times but was called %d times", 1, len(startedContainers))
 	}
 
-	if timesRegisterCalled != 1 {
-		t.Errorf("Expected consul deregister to be called %d times but was called %d times", 1, timesRegisterCalled)
+	if len(registeredServices) != 1 {
+		t.Errorf("Expected consul deregister to be called %d times but was called %d times", 1, len(registeredServices))
 	}
 }
 
@@ -144,21 +151,27 @@ func TestSuccessfulBootWithStopAndDeregister(t *testing.T) {
 	global.Machine.ForceTransition(global.Initial, nil)
 	defer global.Machine.ForceTransition(global.Initial, nil)
 
-	timesStopCalled := 0
+	var stoppedContainers []string
 	dockerClient := test.DockerClient{
 		RunningContainersResponse: func() (string, error) { return `921582f62758 consul`, nil },
 		RunResponse:               func(c container.Container) error { return nil },
-		StopResponse:              func(c container.Container) error { timesStopCalled += 1; return nil },
+		StopResponse: func(c container.Container) error {
+			stoppedContainers = append(stoppedContainers, c.Name)
+			return nil
+		},
 	}
 
-	timesDeregisterCalled := 0
+	var deregisteredServices []string
 	consulClient := test.ConsulClient{
 		RegisteredServicesResponse: func() (string, error) {
 			str := `{"consul":{"ID":"consul","Service":"consul","Tags":[],"Address":"","Port":8300}}`
 			return str, nil
 		},
-		RegisterResponse:     func(s service.Service) error { return nil },
-		DeregisterResponse:   func(s service.Service) error { timesDeregisterCalled += 1; return nil },
+		RegisterResponse: func(s service.Service) error { return nil },
+		DeregisterResponse: func(s service.Service) error {
+			deregisteredServices = append(deregisteredServices, s.Name)
+			return nil
+		},
 		DetectResponse:       func() error { return nil },
 		PostMetadataResponse: func() error { return nil },
 	}
@@ -168,14 +181,105 @@ func TestSuccessfulBootWithStopAndDeregister(t *testing.T) {
 	Boot(dockerClient, consulClient, state)
 
 	if !global.Machine.IsCurrently(global.Booted) {
-		t.Errorf("Expected machine to be %s but was %v", global.ConfigFailed, global.Machine.CurrentState)
+		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
 	}
 
-	if timesStopCalled != 1 {
-		t.Errorf("Expected docker stop to be called %d times but was called %d times", 1, timesStopCalled)
+	if len(stoppedContainers) != 1 {
+		t.Errorf("Expected docker stop to be called %d times but was called %d times", 1, len(stoppedContainers))
 	}
 
-	if timesDeregisterCalled != 1 {
-		t.Errorf("Expected consul deregister to be called %d times but was called %d times", 1, timesDeregisterCalled)
+	if len(deregisteredServices) != 1 {
+		t.Errorf("Expected consul deregister to be called %d times but was called %d times", 1, len(deregisteredServices))
+	}
+}
+
+func TestFailedConsulCheck(t *testing.T) {
+	global.Machine.ForceTransition(global.Initial, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	dockerClient := test.DockerClient{
+		RunningContainersResponse: func() (string, error) { return "", nil },
+	}
+
+	consulClient := test.ConsulClient{
+		RegisteredServicesResponse: func() (string, error) { return "", nil },
+		DetectResponse:             func() error { return errors.New("Not Detected") },
+	}
+
+	state := &State{}
+
+	Boot(dockerClient, consulClient, state)
+
+	if !global.Machine.IsCurrently(global.ConsulFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.ConsulFailed, global.Machine.CurrentState)
+	}
+}
+
+func TestFailedRunningContainersRequest(t *testing.T) {
+	global.Machine.ForceTransition(global.Initial, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	dockerClient := test.DockerClient{
+		RunningContainersResponse: func() (string, error) { return "", errors.New("Socket exploded") },
+	}
+
+	consulClient := test.ConsulClient{
+		RegisteredServicesResponse: func() (string, error) { return "", nil },
+		DetectResponse:             func() error { return nil },
+		PostMetadataResponse:       func() error { return nil },
+	}
+
+	state := &State{}
+
+	Boot(dockerClient, consulClient, state)
+
+	if !global.Machine.IsCurrently(global.FetchingNodeStateFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.FetchingNodeStateFailed, global.Machine.CurrentState)
+	}
+}
+
+func TestFailedRegisteredServicesRequest(t *testing.T) {
+	global.Machine.ForceTransition(global.Initial, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	dockerClient := test.DockerClient{
+		RunningContainersResponse: func() (string, error) { return "", nil },
+	}
+
+	consulClient := test.ConsulClient{
+		RegisteredServicesResponse: func() (string, error) { return "", errors.New("Socket exploded") },
+		DetectResponse:             func() error { return nil },
+		PostMetadataResponse:       func() error { return nil },
+	}
+
+	state := &State{}
+
+	Boot(dockerClient, consulClient, state)
+
+	if !global.Machine.IsCurrently(global.FetchingNodeStateFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.FetchingNodeStateFailed, global.Machine.CurrentState)
+	}
+}
+
+func TestFailedMetadataPost(t *testing.T) {
+	global.Machine.ForceTransition(global.Initial, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	dockerClient := test.DockerClient{
+		RunningContainersResponse: func() (string, error) { return "", nil },
+	}
+
+	consulClient := test.ConsulClient{
+		RegisteredServicesResponse: func() (string, error) { return "", nil },
+		DetectResponse:             func() error { return nil },
+		PostMetadataResponse:       func() error { return errors.New("metadata request failed") },
+	}
+
+	state := &State{}
+
+	Boot(dockerClient, consulClient, state)
+
+	if !global.Machine.IsCurrently(global.PostingMetadataFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.PostingMetadataFailed, global.Machine.CurrentState)
 	}
 }
