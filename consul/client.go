@@ -197,25 +197,25 @@ type ServiceRepresentation struct {
 }
 
 func (h HttpClient) consulCheckURL() string {
-	return fmt.Sprintf("http://%s:8500/", h.ConsulHost)
+	return fmt.Sprintf("http://%s:8500/", h.ConsulHost())
 }
 
 func (h HttpClient) servicesURL() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/services", h.ConsulHost)
+	return fmt.Sprintf("http://%s:8500/v1/agent/services", h.ConsulHost())
 }
 
 func (h HttpClient) serviceRegisterURL() string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/service/register", h.ConsulHost)
+	return fmt.Sprintf("http://%s:8500/v1/agent/service/register", h.ConsulHost())
 }
 
 func (h HttpClient) serviceDeregisterURL(s service.Service) string {
-	return fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", h.ConsulHost, s.Name)
+	return fmt.Sprintf("http://%s:8500/v1/agent/service/deregister/%s", h.ConsulHost(), s.Name)
 }
 
 func (h HttpClient) metadataURL(key string, nodeName string) string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/metadata/%s", h.ConsulHost, nodeName, key)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/metadata/%s", h.ConsulHost(), nodeName, key)
 }
 
 func (h HttpClient) directoryStateURL(nodeName string, index int, wait string) string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", h.ConsulHost, nodeName, index, wait)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", h.ConsulHost(), nodeName, index, wait)
 }
