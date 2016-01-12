@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -88,7 +89,7 @@ func main() {
 
 	logger.Info("ready to go...")
 
-	Run(dockerClient, consulClient, state)
+	run(dockerClient, consulClient, state)
 }
 
 func runServer() {
@@ -105,4 +106,22 @@ func runServer() {
 	})
 
 	http.ListenAndServe(":8000", nil)
+}
+
+func run(dockerClient docker.Client, consulClient consul.Client, state *State) {
+	for {
+		Boot(dockerClient, consulClient, state)
+
+		if global.Machine.IsCurrently(global.Booted) {
+			break
+		}
+
+		time.Sleep(6 * time.Second)
+	}
+
+	if state.ShouldLoop {
+		Loop(dockerClient, consulClient, state)
+	} else {
+		Once(dockerClient, consulClient, state)
+	}
 }
