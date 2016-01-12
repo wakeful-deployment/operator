@@ -40,8 +40,11 @@ func ReadStateFromConfigFile(path string) (*State, error) {
 
 func MergeStates(bootState *State, directoryState *consul.DirectoryState) (*State, error) {
 	newState := &State{}
-	*newState = *bootState                                // clone
-	newState.Services = make(map[string]*service.Service) //Initialize Map
+	*newState = *bootState // clone
+
+	if newState.Services == nil {
+		newState.Services = make(map[string]*service.Service)
+	}
 
 	directoryServices, err := directoryState.Services()
 
