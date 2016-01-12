@@ -40,7 +40,7 @@ var AllowedTransitions = fsm.Rules{
 	fsm.From(Booting).To(ConsulFailed, PostingMetadataFailed, FetchingNodeStateFailed, NormalizingFailed, Booted),
 	fsm.From(PostingMetadataFailed).To(Booting),
 	fsm.From(ConsulFailed).To(Booting, AttemptingToRecover),
-	fsm.From(Booted).To(ConsulFailed, FetchingNodeStateFailed, NormalizingFailed, Running),
+	fsm.From(Booted).To(ConsulFailed, FetchingDirectoryStateFailed, FetchingNodeStateFailed, NormalizingFailed, Running),
 	fsm.From(FetchingNodeStateFailed).To(Booting, AttemptingToRecover),
 	fsm.From(MergingStateFailed).To(Booting, AttemptingToRecover),
 	fsm.From(NormalizingFailed).To(Booting, AttemptingToRecover),

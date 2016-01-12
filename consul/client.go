@@ -117,14 +117,13 @@ func (h HttpClient) PostMetadata(nodeName string, metadata map[string]string) er
 
 func (h HttpClient) GetDirectoryState(nodeName string, index int, wait string) (*DirectoryState, error) {
 	url := h.directoryStateURL(nodeName, index, wait)
-	state := &DirectoryState{}
 	resp, err := http.Get(url)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = handleDirectoryResponse(resp, state)
+	state, err := handleDirectoryResponse(resp)
 
 	if err != nil {
 		return nil, err
@@ -137,38 +136,40 @@ func getDirectoryIndex(resp *http.Response) (int, error) {
 	return strconv.Atoi(resp.Header["X-Consul-Index"][0])
 }
 
-func handleDirectoryResponse(resp *http.Response, state *DirectoryState) error {
+func handleDirectoryResponse(resp *http.Response) (*DirectoryState, error) {
+	state := DirectoryState{}
+
 	switch resp.StatusCode {
 	case 200:
 		index, err := getDirectoryIndex(resp)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var keys []KV
 		err = json.NewDecoder(resp.Body).Decode(&keys)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		state.KVs = keys
 		state.Index = index
 
-		return nil
+		return &state, nil
 	case 404:
 		index, err := getDirectoryIndex(resp)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		state.Index = index
 
-		return nil
+		return &state, nil
 	default:
-		return errors.New("non 200/404 response code")
+		return nil, errors.New("non 200/404 response code")
 	}
 }
 

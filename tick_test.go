@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/wakeful-deployment/operator/consul"
 	"github.com/wakeful-deployment/operator/container"
 	"github.com/wakeful-deployment/operator/global"
@@ -37,7 +38,7 @@ func TestSuccessfulTickWithStart(t *testing.T) {
 	Tick(dockerClient, consulClient, bootState(), directoryState)
 
 	if !global.Machine.IsCurrently(global.Running) {
-		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
+		t.Errorf("Expected machine to be %s but was %v", global.Running, global.Machine.CurrentState)
 	}
 
 	if len(startedContainers) != 1 {
@@ -85,7 +86,7 @@ proxy plum/wake-proxy:latest
 	Tick(dockerClient, consulClient, bootState(), directoryState)
 
 	if !global.Machine.IsCurrently(global.Running) {
-		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
+		t.Errorf("Expected machine to be %s but was %v", global.Running, global.Machine.CurrentState)
 	}
 
 	if len(startedContainers) != 0 {
@@ -102,6 +103,125 @@ proxy plum/wake-proxy:latest
 
 	if len(deregisteredServices) != 1 {
 		t.Errorf("Expected to deregister %d services but %d were deregistered", 1, len(deregisteredServices))
+	}
+}
+
+func TestFailedTickDockerFailed(t *testing.T) {
+	global.Machine.ForceTransition(global.Booted, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	var startedContainers []string
+	var stoppedContainers []string
+	dockerClient := dockerClient(&startedContainers, &stoppedContainers)
+	dockerClient.RunningContainersResponse = func() (string, error) { return "", errors.New("Docker failed") }
+
+	var registeredServices []string
+	var deregisteredServices []string
+	consulClient := consulClient(&registeredServices, &deregisteredServices)
+	consulClient.RegisteredServicesResponse = func() (string, error) { return "", nil }
+
+	Tick(dockerClient, consulClient, bootState(), &consul.DirectoryState{})
+
+	if !global.Machine.IsCurrently(global.FetchingNodeStateFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.FetchingNodeStateFailed, global.Machine.CurrentState)
+	}
+
+	if len(startedContainers) != 0 {
+		t.Errorf("Expected docker start to be called %d times but was called %d times", 0, len(startedContainers))
+	}
+
+	if len(stoppedContainers) != 0 {
+		t.Errorf("Expected docker stop to be called %d times but was called %d times", 0, len(stoppedContainers))
+	}
+
+	if len(registeredServices) != 0 {
+		t.Errorf("Expected to register %d services but %d were registered", 0, len(registeredServices))
+	}
+
+	if len(deregisteredServices) != 0 {
+		t.Errorf("Expected to deregister %d services but %d were deregistered", 0, len(deregisteredServices))
+	}
+}
+
+func TestFailedTickConsulFailed(t *testing.T) {
+	global.Machine.ForceTransition(global.Booted, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	var startedContainers []string
+	var stoppedContainers []string
+	dockerClient := dockerClient(&startedContainers, &stoppedContainers)
+	dockerClient.RunningContainersResponse = func() (string, error) { return "", nil }
+
+	var registeredServices []string
+	var deregisteredServices []string
+	consulClient := consulClient(&registeredServices, &deregisteredServices)
+	consulClient.RegisteredServicesResponse = func() (string, error) { return "", errors.New("Consul Failed") }
+
+	Tick(dockerClient, consulClient, bootState(), &consul.DirectoryState{})
+
+	if !global.Machine.IsCurrently(global.FetchingNodeStateFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.FetchingNodeStateFailed, global.Machine.CurrentState)
+	}
+
+	if len(startedContainers) != 0 {
+		t.Errorf("Expected docker start to be called %d times but was called %d times", 0, len(startedContainers))
+	}
+
+	if len(stoppedContainers) != 0 {
+		t.Errorf("Expected docker stop to be called %d times but was called %d times", 0, len(stoppedContainers))
+	}
+
+	if len(registeredServices) != 0 {
+		t.Errorf("Expected to register %d services but %d were registered", 0, len(registeredServices))
+	}
+
+	if len(deregisteredServices) != 0 {
+		t.Errorf("Expected to deregister %d services but %d were deregistered", 0, len(deregisteredServices))
+	}
+}
+
+func TestSuccessfulGetDirectoryState(t *testing.T) {
+	global.Machine.ForceTransition(global.Booted, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	index := 123
+	var registeredServices []string
+	var deregisteredServices []string
+	consulClient := consulClient(&registeredServices, &deregisteredServices)
+	consulClient.GetDirectoryStateResponse = func() (*consul.DirectoryState, error) {
+		return &consul.DirectoryState{Index: index}, nil
+	}
+
+	directoryState := GetDirectoryState(consulClient, "abc123", 0, "5m")
+
+	if !global.Machine.IsCurrently(global.Booted) {
+		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
+	}
+
+	if directoryState.Index != index {
+		t.Errorf("expected index to be %d, but was %d", index, directoryState.Index)
+	}
+}
+
+func TestFailedGetDirectoryState(t *testing.T) {
+	global.Machine.ForceTransition(global.Booted, nil)
+	defer global.Machine.ForceTransition(global.Initial, nil)
+
+	var registeredServices []string
+	var deregisteredServices []string
+	consulClient := consulClient(&registeredServices, &deregisteredServices)
+	consulClient.GetDirectoryStateResponse = func() (*consul.DirectoryState, error) {
+		return nil, errors.New("Fetching directory state failed")
+	}
+
+	directoryState := GetDirectoryState(consulClient, "abc123", 0, "5m")
+
+	if !global.Machine.IsCurrently(global.FetchingDirectoryStateFailed) {
+		t.Errorf("Expected machine to be %s but was %v", global.FetchingDirectoryStateFailed, global.Machine.CurrentState)
+	}
+
+	if directoryState != nil {
+		t.Errorf("expected directory state to be nil but was not")
 	}
 }
 
@@ -134,7 +254,6 @@ func consulClient(registeredServices *[]string, deregisteredServices *[]string) 
 			*deregisteredServices = append(*deregisteredServices, s.Name)
 			return nil
 		},
-		DetectResponse:       func() error { return nil },
 		PostMetadataResponse: func() error { return nil },
 		ConsulHostResponse:   func() string { return "127.0.0.1" },
 	}
