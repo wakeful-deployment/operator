@@ -115,39 +115,6 @@ func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	}
 }
 
-// reconcile the desired config with the current state
-func normalize(dockerClient docker.Client, consulClient consul.Client, desiredState *State, currentNodeState *node.State) error {
-	// always try to fix the containers before fixing the registrations
-
-	var desiredContainers []container.Container
-
-	for _, service := range desiredState.Services {
-		desiredContainers = append(desiredContainers, service.Container(desiredState.NodeName, consulClient.ConsulHost()))
-	}
-
-	err := docker.NormalizeContainers(dockerClient, desiredContainers, currentNodeState.Containers)
-
-	if err != nil {
-		return err
-	}
-
-	// then try to register everything correctly in consul
-
-	var desiredServices []service.Service
-
-	for _, s := range desiredState.Services {
-		desiredServices = append(desiredServices, *s)
-	}
-
-	err = consul.NormalizeServices(consulClient, desiredServices, currentNodeState.Services)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func GetState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
 	logger.Info("getting directory state...")
 	directoryState, err := consulClient.GetDirectoryState(nodeName, index, wait) // this will block for some time
@@ -197,6 +164,39 @@ func Tick(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	if !global.Machine.IsCurrently(global.Running) {
 		global.Machine.Transition(global.Running, nil)
 	}
+}
+
+// reconcile the desired config with the current state
+func normalize(dockerClient docker.Client, consulClient consul.Client, desiredState *State, currentNodeState *node.State) error {
+	// always try to fix the containers before fixing the registrations
+
+	var desiredContainers []container.Container
+
+	for _, service := range desiredState.Services {
+		desiredContainers = append(desiredContainers, service.Container(desiredState.NodeName, consulClient.ConsulHost()))
+	}
+
+	err := docker.NormalizeContainers(dockerClient, desiredContainers, currentNodeState.Containers)
+
+	if err != nil {
+		return err
+	}
+
+	// then try to register everything correctly in consul
+
+	var desiredServices []service.Service
+
+	for _, s := range desiredState.Services {
+		desiredServices = append(desiredServices, *s)
+	}
+
+	err = consul.NormalizeServices(consulClient, desiredServices, currentNodeState.Services)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func detectOrBootConsul(dockerClient docker.Client, consulClient consul.Client, state *State) error {
