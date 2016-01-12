@@ -13,7 +13,7 @@ import (
 )
 
 func Once(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
-	directoryState := GetState(consulClient, bootState.NodeName, 0, "0s")
+	directoryState := GetDirectoryState(consulClient, bootState.NodeName, 0, "0s")
 	Tick(dockerClient, consulClient, bootState, directoryState)
 }
 
@@ -21,7 +21,7 @@ func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	index := 0
 
 	for {
-		directoryState := GetState(consulClient, bootState.NodeName, index, bootState.Wait)
+		directoryState := GetDirectoryState(consulClient, bootState.NodeName, index, bootState.Wait)
 		Tick(dockerClient, consulClient, bootState, directoryState)
 
 		if global.Machine.IsCurrently(global.Running) {
@@ -35,7 +35,7 @@ func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	}
 }
 
-func GetState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
+func GetDirectoryState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
 	logger.Info("getting directory state...")
 	directoryState, err := consulClient.GetDirectoryState(nodeName, index, wait) // this will block for some time
 

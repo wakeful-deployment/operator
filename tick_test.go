@@ -9,39 +9,6 @@ import (
 	"testing"
 )
 
-func bootState() *State {
-	return &State{Services: map[string]*service.Service{"consul": &service.Service{Name: "consul"}, "statsite": &service.Service{Name: "statsite"}}}
-}
-
-func dockerClient(startedContainers *[]string, stoppedContainers *[]string) test.DockerClient {
-	return test.DockerClient{
-		RunResponse: func(c container.Container) error {
-			*startedContainers = append(*startedContainers, c.Name)
-			return nil
-		},
-		StopResponse: func(c container.Container) error {
-			*stoppedContainers = append(*stoppedContainers, c.Name)
-			return nil
-		},
-	}
-}
-
-func consulClient(registeredServices *[]string, deregisteredServices *[]string) test.ConsulClient {
-	return test.ConsulClient{
-		RegisterResponse: func(s service.Service) error {
-			*registeredServices = append(*registeredServices, s.Name)
-			return nil
-		},
-		DeregisterResponse: func(s service.Service) error {
-			*deregisteredServices = append(*deregisteredServices, s.Name)
-			return nil
-		},
-		DetectResponse:       func() error { return nil },
-		PostMetadataResponse: func() error { return nil },
-		ConsulHostResponse:   func() string { return "127.0.0.1" },
-	}
-}
-
 func TestSuccessfulTickWithStart(t *testing.T) {
 	global.Machine.ForceTransition(global.Booted, nil)
 	defer global.Machine.ForceTransition(global.Initial, nil)
@@ -63,14 +30,11 @@ func TestSuccessfulTickWithStart(t *testing.T) {
 	consulClient.RegisteredServicesResponse = func() (string, error) {
 		return `{"consul":{"ID":"consul","Service":"consul","Tags":[],"Address":"","Port":8300},"statsite":{"ID":"statsite","Service":"statsite","Tags":null,"Address":"10.1.0.9","Port":0}}`, nil
 	}
-	consulClient.GetDirectoryStateResponse = func() (*consul.DirectoryState, error) {
-		return &consul.DirectoryState{KVs: []consul.KV{consul.KV{Key: "_wakeful/nodes/981eb8e33da95184/apps/proxy", Value: "eyJpbWFnZSI6InBsdW0vd2FrZS1wcm94eTpsYXRlc3QiLCJ0YWdzIjpbXX0="}}}, nil
-	}
 
-	bootState := bootState()
-	directoryState := GetState(consulClient, "abcefg", 1, "5m")
+	proxyKV := consul.KV{Key: "_wakeful/nodes/981eb8e33da95184/apps/proxy", Value: "eyJpbWFnZSI6InBsdW0vd2FrZS1wcm94eTpsYXRlc3QiLCJ0YWdzIjpbXX0="}
+	directoryState := &consul.DirectoryState{KVs: []consul.KV{proxyKV}}
 
-	Tick(dockerClient, consulClient, bootState, directoryState)
+	Tick(dockerClient, consulClient, bootState(), directoryState)
 
 	if !global.Machine.IsCurrently(global.Running) {
 		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
@@ -115,14 +79,10 @@ proxy plum/wake-proxy:latest
 	consulClient.RegisteredServicesResponse = func() (string, error) {
 		return `{"consul":{"ID":"consul","Service":"consul","Tags":[],"Address":"","Port":8300},"statsite":{"ID":"statsite","Service":"statsite","Tags":null,"Address":"10.1.0.9","Port":0}, "proxy":{"ID":"proxy","Service":"proxy","Tags":[],"Address":"","Port":8000}}`, nil
 	}
-	consulClient.GetDirectoryStateResponse = func() (*consul.DirectoryState, error) {
-		return &consul.DirectoryState{}, nil
-	}
 
-	bootState := bootState()
-	directoryState := GetState(consulClient, "abcefg", 1, "5m")
+	directoryState := &consul.DirectoryState{}
 
-	Tick(dockerClient, consulClient, bootState, directoryState)
+	Tick(dockerClient, consulClient, bootState(), directoryState)
 
 	if !global.Machine.IsCurrently(global.Running) {
 		t.Errorf("Expected machine to be %s but was %v", global.Booted, global.Machine.CurrentState)
@@ -142,5 +102,40 @@ proxy plum/wake-proxy:latest
 
 	if len(deregisteredServices) != 1 {
 		t.Errorf("Expected to deregister %d services but %d were deregistered", 1, len(deregisteredServices))
+	}
+}
+
+// Helpers
+
+func bootState() *State {
+	return &State{Services: map[string]*service.Service{"consul": &service.Service{Name: "consul"}, "statsite": &service.Service{Name: "statsite"}}}
+}
+
+func dockerClient(startedContainers *[]string, stoppedContainers *[]string) test.DockerClient {
+	return test.DockerClient{
+		RunResponse: func(c container.Container) error {
+			*startedContainers = append(*startedContainers, c.Name)
+			return nil
+		},
+		StopResponse: func(c container.Container) error {
+			*stoppedContainers = append(*stoppedContainers, c.Name)
+			return nil
+		},
+	}
+}
+
+func consulClient(registeredServices *[]string, deregisteredServices *[]string) test.ConsulClient {
+	return test.ConsulClient{
+		RegisterResponse: func(s service.Service) error {
+			*registeredServices = append(*registeredServices, s.Name)
+			return nil
+		},
+		DeregisterResponse: func(s service.Service) error {
+			*deregisteredServices = append(*deregisteredServices, s.Name)
+			return nil
+		},
+		DetectResponse:       func() error { return nil },
+		PostMetadataResponse: func() error { return nil },
+		ConsulHostResponse:   func() string { return "127.0.0.1" },
 	}
 }
