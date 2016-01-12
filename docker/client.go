@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/wakeful-deployment/operator/container"
+	"github.com/wakeful-deployment/operator/logger"
 	"os/exec"
 	"time"
 )
@@ -17,7 +18,7 @@ type Client interface {
 type EngineClient struct{}
 
 func (d EngineClient) Run(c container.Container) error {
-	fmt.Printf("INFO: running container with name '%s' with image '%s'\n", c.Name, c.Image)
+	logger.Info(fmt.Sprintf("running container with name '%s' with image '%s'", c.Name, c.Image))
 
 	args := RunArgs(c)
 	_, err := exec.Command("docker", args...).Output()
@@ -31,7 +32,7 @@ func (d EngineClient) Run(c container.Container) error {
 }
 
 func (d EngineClient) Stop(c container.Container) error {
-	fmt.Printf("INFO: stopping container with name '%s'\n", c.Name)
+	logger.Info(fmt.Sprintf("stopping container with name '%s'", c.Name))
 
 	_, err := exec.Command("docker", "stop", c.Name).Output()
 

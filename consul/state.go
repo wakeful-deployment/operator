@@ -16,10 +16,10 @@ func (s DirectoryState) Services() ([]*service.Service, error) {
 		service, err := kv.DecodeService()
 
 		if err != nil {
-			services = append(services, service)
-		} else {
 			return nil, err
 		}
+
+		services = append(services, service)
 	}
 
 	return services, nil

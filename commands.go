@@ -93,16 +93,16 @@ func Boot(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 }
 
 func Once(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
-	directoryState := getState(consulClient, bootState.NodeName, 0, "0s")
-	tick(dockerClient, consulClient, bootState, directoryState)
+	directoryState := GetState(consulClient, bootState.NodeName, 0, "0s")
+	Tick(dockerClient, consulClient, bootState, directoryState)
 }
 
 func Loop(dockerClient docker.Client, consulClient consul.Client, bootState *State) {
 	index := 0
 
 	for {
-		directoryState := getState(consulClient, bootState.NodeName, index, bootState.Wait)
-		tick(dockerClient, consulClient, bootState, directoryState)
+		directoryState := GetState(consulClient, bootState.NodeName, index, bootState.Wait)
+		Tick(dockerClient, consulClient, bootState, directoryState)
 
 		if global.Machine.IsCurrently(global.Running) {
 			logger.Info(fmt.Sprintf("iteration complete - setting index to %d and then sleeping", directoryState.Index))
@@ -148,7 +148,7 @@ func normalize(dockerClient docker.Client, consulClient consul.Client, desiredSt
 	return nil
 }
 
-func getState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
+func GetState(consulClient consul.Client, nodeName string, index int, wait string) *consul.DirectoryState {
 	logger.Info("getting directory state...")
 	directoryState, err := consulClient.GetDirectoryState(nodeName, index, wait) // this will block for some time
 
@@ -162,7 +162,7 @@ func getState(consulClient consul.Client, nodeName string, index int, wait strin
 	return directoryState
 }
 
-func tick(dockerClient docker.Client, consulClient consul.Client, bootState *State, directoryState *consul.DirectoryState) {
+func Tick(dockerClient docker.Client, consulClient consul.Client, bootState *State, directoryState *consul.DirectoryState) {
 	if !global.Machine.IsCurrently(global.Running) && !global.Machine.IsCurrently(global.Booted) {
 		global.Machine.Transition(global.AttemptingToRecover, global.Machine.CurrentState.Error)
 	}

@@ -12,7 +12,7 @@ type Machine struct {
 
 func (m *Machine) ForceTransition(to State, e error) {
 	to.Error = e
-	fmt.Println(fmt.Sprintf("Force transitioned from %v to %v", m.CurrentState, to))
+	fmt.Println(fmt.Sprintf("FSM: force transitioned from %v to %v", m.CurrentState, to))
 	m.CurrentState = to
 }
 
@@ -30,7 +30,7 @@ func (m *Machine) Transition(to State, e error) {
 
 	if m.Rules.Test(m.CurrentState, to) {
 		to.Error = e
-		fmt.Println(fmt.Sprintf("Transitioned from %v to %v", m.CurrentState, to))
+		fmt.Println(fmt.Sprintf("FSM: transitioned from %v to %v", m.CurrentState, to))
 		m.CurrentState = to
 	} else {
 		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %s to %s, not allowed", m.CurrentState, to))

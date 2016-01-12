@@ -16,13 +16,7 @@ type ConsulClient struct {
 }
 
 func (t ConsulClient) RegisteredServices() (string, error) {
-	result, err := t.RegisteredServicesResponse()
-
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
+	return t.RegisteredServicesResponse()
 }
 
 func (t ConsulClient) Register(s service.Service) error {
@@ -42,13 +36,7 @@ func (t ConsulClient) Detect() error {
 }
 
 func (t ConsulClient) GetDirectoryState(nodeName string, index int, wait string) (*consul.DirectoryState, error) {
-	result, err := t.GetDirectoryStateResponse()
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return t.GetDirectoryStateResponse()
 }
 
 func (t ConsulClient) ConsulHost() string {

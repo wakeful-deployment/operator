@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wakeful-deployment/operator/logger"
 	"github.com/wakeful-deployment/operator/service"
 	"strings"
 )
@@ -27,8 +28,8 @@ func NormalizeServices(client Client, desired []service.Service, current []servi
 	removed := Diff(current, desired)
 	added := Diff(desired, current)
 
-	fmt.Printf("INFO: Removed services: %v\n", removed)
-	fmt.Printf("INFO: Added services: %v\n", added)
+	logger.Info(fmt.Sprintf("removed services: %v", removed))
+	logger.Info(fmt.Sprintf("added services: %v", added))
 
 	errs := []error{}
 	for _, service := range added {

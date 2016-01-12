@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/wakeful-deployment/operator/container"
+	"github.com/wakeful-deployment/operator/logger"
 	"strings"
 )
 
@@ -21,8 +22,8 @@ func NormalizeContainers(client Client, desired []container.Container, current [
 	removed := container.Diff(current, desired)
 	added := container.Diff(desired, current)
 
-	fmt.Printf("INFO: Removed containers: %v\n", removed)
-	fmt.Printf("INFO: Added containers: %v\n", added)
+	logger.Info(fmt.Sprintf("removed containers: %v", removed))
+	logger.Info(fmt.Sprintf("added containers: %v", added))
 
 	if len(added) == 0 && len(removed) == 0 {
 		return nil
@@ -37,9 +38,8 @@ func NormalizeContainers(client Client, desired []container.Container, current [
 	}
 
 	for _, container := range removed {
-		fmt.Println("Should remove container")
 		err := client.Stop(container)
-		fmt.Println("Stop was successful")
+
 		if err != nil {
 			errs = append(errs, err)
 		}
