@@ -52,7 +52,13 @@ func (s Service) SimplePorts() []string {
 	var ports []string
 
 	for _, pair := range s.Ports {
-		str := fmt.Sprintf("%d:%d", pair.Incoming, pair.Outgoing)
+		var str string
+
+		if pair.Incoming == 0 {
+			str = string(pair.Outgoing)
+		} else {
+			str = fmt.Sprintf("%d:%d", pair.Incoming, pair.Outgoing)
+		}
 
 		if pair.UDP {
 			str = fmt.Sprintf("%s/udp", str)
