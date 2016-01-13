@@ -7,7 +7,6 @@ import (
 	"github.com/wakeful-deployment/operator/docker"
 	"github.com/wakeful-deployment/operator/global"
 	"github.com/wakeful-deployment/operator/logger"
-	"github.com/wakeful-deployment/operator/node"
 	"time"
 )
 
@@ -47,24 +46,6 @@ func Boot(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	if err != nil {
 		global.Machine.Transition(global.PostingMetadataFailed, err)
 		logger.Error(fmt.Sprintf("posting metadata failed with error: %v", err))
-		return
-	}
-
-	logger.Info("getting current node state")
-	currentNodeState, err := node.CurrentState(dockerClient, consulClient)
-
-	if err != nil {
-		global.Machine.Transition(global.FetchingNodeStateFailed, err)
-		logger.Error(fmt.Sprintf("fetching current node state failed with error: %v", err))
-		return
-	}
-
-	logger.Info(fmt.Sprintf("normalizing states - bootState=%v and currentNodeState=%v", bootState, currentNodeState))
-	err = normalize(dockerClient, consulClient, bootState, currentNodeState)
-
-	if err != nil {
-		global.Machine.Transition(global.NormalizingFailed, err)
-		logger.Error(fmt.Sprintf("normalizing states failed with error: %v", err))
 		return
 	}
 
