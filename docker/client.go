@@ -6,6 +6,7 @@ import (
 	"github.com/wakeful-deployment/operator/container"
 	"github.com/wakeful-deployment/operator/logger"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,8 @@ func (d EngineClient) Run(c container.Container) error {
 	logger.Info(fmt.Sprintf("running container with name '%s' with image '%s'", c.Name, c.Image))
 
 	args := RunArgs(c)
+	commandString := strings.Join(append([]string{"docker"}, args...), " ")
+	logger.Info(fmt.Sprintf("running docker command: '%s'", commandString))
 	_, err := exec.Command("docker", args...).Output()
 
 	if err != nil {
