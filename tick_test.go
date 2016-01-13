@@ -32,7 +32,7 @@ func TestSuccessfulTickWithStart(t *testing.T) {
 		return `{"consul":{"ID":"consul","Service":"consul","Tags":[],"Address":"","Port":8300},"statsite":{"ID":"statsite","Service":"statsite","Tags":null,"Address":"10.1.0.9","Port":0}}`, nil
 	}
 
-	proxyKV := consul.KV{Key: "_wakeful/nodes/981eb8e33da95184/apps/proxy", Value: "eyJpbWFnZSI6InBsdW0vd2FrZS1wcm94eTpsYXRlc3QiLCJ0YWdzIjpbXX0="}
+	proxyKV := consul.KV{Key: "_wakeful/nodes/981eb8e33da95184/services/proxy", Value: "eyJpbWFnZSI6InBsdW0vd2FrZS1wcm94eTpsYXRlc3QiLCJ0YWdzIjpbXX0="}
 	directoryState := &consul.DirectoryState{KVs: []consul.KV{proxyKV}}
 
 	bootState := bootState()

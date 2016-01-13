@@ -218,5 +218,5 @@ func (h HttpClient) metadataURL(key string, nodeName string) string {
 }
 
 func (h HttpClient) directoryStateURL(nodeName string, index int, wait string) string {
-	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/apps/?recurse=true&index=%d&wait=%s", h.ConsulHost(), nodeName, index, wait)
+	return fmt.Sprintf("http://%s:8500/v1/kv/_wakeful/nodes/%s/services/?recurse=true&index=%d&wait=%s", h.ConsulHost(), nodeName, index, wait)
 }

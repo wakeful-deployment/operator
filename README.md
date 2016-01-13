@@ -11,7 +11,7 @@ Operator is a daemon which listens for changes to consul key/value storage and r
 
 The daemon listens to a specific consul key/value namespace "_wakeful/nodes/$NODENAME"where $NODENAME is the name of the node on which Operator runs. This is specified at boot of the daemon via a command line argument.
 
-When a key is added to the "_wakeful/nodes/$NODENAME/apps" namespace, the daemon reacts by starting a docker container named after the last section of the key and using the key's value to determine which container image to used. See below for the struct the value must have. Additionally, a consul ["service"](https://consul.io/docs/agent/services.html) with the same name as the container will be registered.
+When a key is added to the "_wakeful/nodes/$NODENAME/services" namespace, the daemon reacts by starting a docker container named after the last section of the key and using the key's value to determine which container image to used. See below for the struct the value must have. Additionally, a consul ["service"](https://consul.io/docs/agent/services.html) with the same name as the container will be registered.
 
 For example, if "_wakeful/nodes/$NODENAME/myapp" is added, then a docker container will be started named "myapp" and that key's value will be used to determine which image to use. Additionally, a consul service with the name "myapp" will be registered in consul.
 
