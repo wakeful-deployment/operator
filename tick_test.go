@@ -35,10 +35,18 @@ func TestSuccessfulTickWithStart(t *testing.T) {
 	proxyKV := consul.KV{Key: "_wakeful/nodes/981eb8e33da95184/apps/proxy", Value: "eyJpbWFnZSI6InBsdW0vd2FrZS1wcm94eTpsYXRlc3QiLCJ0YWdzIjpbXX0="}
 	directoryState := &consul.DirectoryState{KVs: []consul.KV{proxyKV}}
 
-	Tick(dockerClient, consulClient, bootState(), directoryState)
+	bootState := bootState()
+
+	bootStateServicesNamesBefore := bootStateServicesNames(*bootState)
+	Tick(dockerClient, consulClient, bootState, directoryState)
+	bootStateServicesNamesAfter := bootStateServicesNames(*bootState)
 
 	if !global.Machine.IsCurrently(global.Running) {
 		t.Errorf("Expected machine to be %s but was %v", global.Running, global.Machine.CurrentState)
+	}
+
+	if len(bootStateServicesNamesBefore) != len(bootStateServicesNamesAfter) {
+		t.Errorf("Expected bootstate to remain the same: before=%v after=%v", bootStateServicesNamesBefore, bootStateServicesNamesAfter)
 	}
 
 	if len(startedContainers) != 1 {
@@ -81,12 +89,19 @@ proxy plum/wake-proxy:latest
 		return `{"consul":{"ID":"consul","Service":"consul","Tags":[],"Address":"","Port":8300},"statsite":{"ID":"statsite","Service":"statsite","Tags":null,"Address":"10.1.0.9","Port":0}, "proxy":{"ID":"proxy","Service":"proxy","Tags":[],"Address":"","Port":8000}}`, nil
 	}
 
+	bootState := bootState()
 	directoryState := &consul.DirectoryState{}
 
-	Tick(dockerClient, consulClient, bootState(), directoryState)
+	bootStateServicesNamesBefore := bootStateServicesNames(*bootState)
+	Tick(dockerClient, consulClient, bootState, directoryState)
+	bootStateServicesNamesAfter := bootStateServicesNames(*bootState)
 
 	if !global.Machine.IsCurrently(global.Running) {
 		t.Errorf("Expected machine to be %s but was %v", global.Running, global.Machine.CurrentState)
+	}
+
+	if len(bootStateServicesNamesBefore) != len(bootStateServicesNamesAfter) {
+		t.Errorf("Expected bootstate to remain the same: before=%v after=%v", bootStateServicesNamesBefore, bootStateServicesNamesAfter)
 	}
 
 	if len(startedContainers) != 0 {
@@ -229,6 +244,14 @@ func TestFailedGetDirectoryState(t *testing.T) {
 
 func bootState() *State {
 	return &State{Services: map[string]*service.Service{"consul": &service.Service{Name: "consul"}, "statsite": &service.Service{Name: "statsite"}}}
+}
+
+func bootStateServicesNames(bootState State) []string {
+	var bootStateServices []string
+	for _, s := range bootState.Services {
+		bootStateServices = append(bootStateServices, s.Name)
+	}
+	return bootStateServices
 }
 
 func dockerClient(startedContainers *[]string, stoppedContainers *[]string) test.DockerClient {

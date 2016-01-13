@@ -42,8 +42,13 @@ func MergeStates(bootState *State, directoryState *consul.DirectoryState) (*Stat
 	newState := &State{}
 	*newState = *bootState // clone
 
-	if newState.Services == nil {
-		newState.Services = make(map[string]*service.Service)
+	// The clone trick above is only a shallow clone.
+	// Since we want to modify the services of newState, we must
+	// first explicitly copy it over from bootState to ensure we don't
+	// end up modifying bootState as well
+	newState.Services = make(map[string]*service.Service)
+	for k, v := range bootState.Services {
+		newState.Services[k] = v
 	}
 
 	directoryServices, err := directoryState.Services()
