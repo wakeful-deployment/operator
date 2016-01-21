@@ -24,16 +24,17 @@ func (m *Machine) Transition(to State, e error) {
 		}
 	}
 
+	to.Error = e
+
 	if !stateIsPresent {
 		panic(fmt.Sprintf("FATAL ERROR: Cannot transition to illegal state: %v", to))
 	}
 
 	if m.Rules.Test(m.CurrentState, to) {
-		to.Error = e
 		fmt.Println(fmt.Sprintf("FSM: transitioned from %v to %v", m.CurrentState, to))
 		m.CurrentState = to
 	} else {
-		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %s to %s, not allowed", m.CurrentState, to))
+		panic(fmt.Sprintf("FATAL ERROR: Cannot transition from %v to %v, not allowed", m.CurrentState, to))
 	}
 }
 

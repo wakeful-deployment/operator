@@ -40,8 +40,8 @@ func GetDirectoryState(consulClient consul.Client, nodeName string, index int, w
 	directoryState, err := consulClient.GetDirectoryState(nodeName, index, wait) // this will block for some time
 
 	if err != nil {
-		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
 		logger.Error(fmt.Sprintf("fetching directory state failed with error: %v", err))
+		global.Machine.Transition(global.FetchingDirectoryStateFailed, err)
 		return nil
 	}
 	logger.Info(fmt.Sprintf("succesfully fetched directoryState: %v", directoryState))
@@ -58,8 +58,8 @@ func Tick(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	desiredState, err := MergeStates(bootState, directoryState)
 
 	if err != nil {
-		global.Machine.Transition(global.MergingStateFailed, err)
 		logger.Error(fmt.Sprintf("merging states failed with error: %v", err))
+		global.Machine.Transition(global.MergingStateFailed, err)
 		return
 	}
 
@@ -67,8 +67,8 @@ func Tick(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	currentNodeState, err := node.CurrentState(dockerClient, consulClient)
 
 	if err != nil {
-		global.Machine.Transition(global.FetchingNodeStateFailed, err)
 		logger.Error(fmt.Sprintf("getting current node state failed with error: %v", err))
+		global.Machine.Transition(global.FetchingNodeStateFailed, err)
 		return
 	}
 
@@ -76,8 +76,8 @@ func Tick(dockerClient docker.Client, consulClient consul.Client, bootState *Sta
 	err = normalize(dockerClient, consulClient, desiredState, currentNodeState)
 
 	if err != nil {
-		global.Machine.Transition(global.NormalizingFailed, err)
 		logger.Error(fmt.Sprintf("normalizing failed with error: %v", err))
+		global.Machine.Transition(global.NormalizingFailed, err)
 		return
 	}
 
